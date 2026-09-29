@@ -15,3 +15,55 @@
   background: #f59e0b;
   color: white;
 }
+/* ==========================================================
+   Tabel responsif pada konten artikel
+   Setiap <table> dibungkus otomatis oleh
+   src/plugins/rehype-scrollable-tables.mjs
+   Ditulis di luar @layer agar tidak dibuang Tailwind.
+   ========================================================== */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.5rem 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #ffffff;
+}
+
+.table-scroll:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+.prose .table-scroll > table {
+  margin: 0;
+  width: 100%;
+}
+
+/* Tabel berkolom banyak dibiarkan melebar supaya teks tidak terjepit;
+   yang bergulir hanya pembungkusnya. */
+.prose .table-scroll > table:has(thead th:nth-child(4)) {
+  min-width: 40rem;
+}
+.prose .table-scroll > table:has(thead th:nth-child(6)) {
+  min-width: 56rem;
+}
+
+.prose .table-scroll th,
+.prose .table-scroll td {
+  vertical-align: top;
+}
+
+/* Tabel di dalam kotak kutipan (Contoh Kasus) tidak perlu miring */
+.prose blockquote .table-scroll {
+  font-style: normal;
+}
+
+/* Cegah URL panjang (misalnya di Daftar Pustaka) melebarkan halaman */
+.prose {
+  overflow-wrap: break-word;
+}
+.prose a {
+  overflow-wrap: anywhere;
+}
