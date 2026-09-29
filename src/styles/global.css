@@ -15,49 +15,153 @@
   background: #f59e0b;
   color: white;
 }
+
 /* ==========================================================
-   Tabel responsif pada konten artikel
+   Tabel pada konten artikel: bergulir sendiri dan senada tema emas
    Setiap <table> dibungkus otomatis oleh
-   src/plugins/rehype-scrollable-tables.mjs
+   src/plugins/satteri-scrollable-tables.mjs
    Ditulis di luar @layer agar tidak dibuang Tailwind.
    ========================================================== */
+
+/* Kotak pembungkus: hanya kotak ini yang bergulir ke samping */
 .table-scroll {
   max-width: 100%;
+  margin: 1.75rem 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  margin: 1.5rem 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
   background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 14px 32px -22px rgba(180, 83, 9, 0.35);
+  /* bilah geser tipis berwarna emas sebagai petunjuk bahwa tabel bisa digeser */
+  scrollbar-width: thin;
+  scrollbar-color: #fbbf24 #f1f5f9;
 }
-
+.table-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.table-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: #fbbf24;
+  border-radius: 999px;
+}
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b;
+}
 .table-scroll:focus-visible {
   outline: 2px solid #f59e0b;
   outline-offset: 2px;
 }
 
+/* Tabel */
 .prose .table-scroll > table {
-  margin: 0;
   width: 100%;
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
 }
 
-/* Tabel berkolom banyak dibiarkan melebar supaya teks tidak terjepit;
-   yang bergulir hanya pembungkusnya. */
-.prose .table-scroll > table:has(thead th:nth-child(4)) {
+/* Tabel berkolom banyak DAN bersel panjang dibiarkan melebar supaya teks tidak terjepit;
+   yang bergulir hanya kotak pembungkusnya. Tabel bersel pendek (kelas .table-compact,
+   diberi otomatis oleh plugin) tetap ringkas. */
+.prose .table-scroll:not(.table-compact) > table:has(thead th:nth-child(4)) {
   min-width: 40rem;
 }
-.prose .table-scroll > table:has(thead th:nth-child(6)) {
-  min-width: 56rem;
+.prose .table-scroll:not(.table-compact) > table:has(thead th:nth-child(5)) {
+  min-width: 48rem;
+}
+.prose .table-scroll:not(.table-compact) > table:has(thead th:nth-child(6)) {
+  min-width: 60rem;
 }
 
-.prose .table-scroll th,
-.prose .table-scroll td {
+/* Tabel ringkas (sel pendek, mis. deretan angka): jarak lebih rapat, judul kolom satu baris */
+.prose .table-scroll.table-compact th,
+.prose .table-scroll.table-compact td {
+  padding-left: 0.85rem;
+  padding-right: 0.85rem;
+}
+.prose .table-scroll.table-compact thead th {
+  white-space: nowrap;
+}
+
+/* Header: latar krem keemasan dan garis emas di bawahnya */
+.prose .table-scroll thead {
+  border-bottom: 0;
+}
+.prose .table-scroll thead th {
+  padding: 0.9rem 1.15rem;
+  text-align: left;
+  vertical-align: bottom;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #78350f;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  border-bottom: 2px solid #f59e0b;
+}
+
+/* Isi: ruang napas, garis tipis antarbaris, baris selang-seling, dan sorotan saat disentuh */
+.prose .table-scroll tbody tr {
+  border-bottom: 0;
+}
+.prose .table-scroll tbody td {
+  padding: 0.85rem 1.15rem;
   vertical-align: top;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+.prose .table-scroll tbody tr:last-child td {
+  border-bottom: 0;
+}
+.prose .table-scroll tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+.prose .table-scroll tbody tr:hover td {
+  background: #fffbeb;
+}
+.prose .table-scroll td strong {
+  color: #0f172a;
 }
 
-/* Tabel di dalam kotak kutipan (Contoh Kasus) tidak perlu miring */
-.prose blockquote .table-scroll {
+/* Kotak "Contoh Kasus" dan "Catatan" memakai blockquote, tetapi isinya bukan kutipan.
+   Hilangkan tanda kutip otomatis dan huruf miring bawaan Tailwind Typography. */
+.prose blockquote {
   font-style: normal;
+  font-weight: 400;
+  quotes: none;
+  color: #334155;
+  padding: 0.6rem 1.1rem 0.6rem 1.25rem;
+}
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none;
+}
+
+/* Tabel di dalam kotak tersebut */
+.prose blockquote .table-scroll {
+  margin: 1rem 0;
+}
+
+/* Kode di dalam kalimat: tanpa tanda petik balik otomatis bawaan Typography */
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+/* Blok kode (rumus): kelas prose-code:bg-slate-100 pada halaman artikel ikut mengenai
+   kode di dalam <pre> sehingga muncul strip terang di atas latar gelap. Kembalikan seperti semestinya. */
+.prose pre code {
+  background: transparent;
+  color: #e2e8f0;
+  padding: 0;
+  border-radius: 0;
 }
 
 /* Cegah URL panjang (misalnya di Daftar Pustaka) melebarkan halaman */
