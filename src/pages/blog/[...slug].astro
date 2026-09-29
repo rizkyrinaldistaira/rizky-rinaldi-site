@@ -184,17 +184,35 @@ const jsonLd = {
 </BaseLayout>
 
 <script define:vars={{ postId: post.id }}>
-  // Track view & tampilkan counter
-  async function trackAndShow() {
+  // Penghitung kunjungan (CounterAPI v1).
+  // - Menambah hitungan maksimal 1x per browser per 24 jam (refresh tidak menggandakan).
+  // - Buka halaman mana pun dengan ?nocount sekali untuk mengabaikan kunjungan Anda sendiri di browser tersebut.
+  (async function () {
     const countEl = document.getElementById('view-count');
     if (!countEl) return;
+
+    const BASE = 'https://api.counterapi.dev/v1/rizkyrinaldi-blog/' + postId;
+    const DAY = 24 * 60 * 60 * 1000;
+    const storeKey = 'pv:' + postId;
+    let shouldCount = true;
+
     try {
-      const res = await fetch(`https://api.counterapi.dev/v1/rizkyrinaldi-blog/${postId}/up`);
+      if (location.search.indexOf('nocount') !== -1) localStorage.setItem('pv:ignore', '1');
+      if (localStorage.getItem('pv:ignore') === '1') shouldCount = false;
+      const last = Number(localStorage.getItem(storeKey) || 0);
+      if (last && Date.now() - last < DAY) shouldCount = false;
+    } catch (e) { /* localStorage tidak tersedia: tetap hitung */ }
+
+    try {
+      const res = await fetch(BASE + (shouldCount ? '/up' : ''));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
-      countEl.textContent = (data.count ?? 0).toLocaleString('id-ID');
-    } catch {
+      countEl.textContent = Number(data.count || 0).toLocaleString('id-ID');
+      if (shouldCount) {
+        try { localStorage.setItem(storeKey, String(Date.now())); } catch (e) {}
+      }
+    } catch (e) {
       countEl.textContent = '—';
     }
-  }
-  trackAndShow();
+  })();
 </script>
