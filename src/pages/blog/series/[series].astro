@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import FormattedDate from '../../../components/FormattedDate.astro';
-import { SITE_TITLE, SITE_URL } from '../../../consts';
+import { SITE_TITLE, SITE_URL, VIEWS_API } from '../../../consts';
 
 export async function getStaticPaths() {
   const allPosts = await getCollection('blog');
@@ -140,6 +140,7 @@ const jsonLd = {
                 <span
                   class="flex items-center gap-1.5 text-xs text-slate-400"
                   data-counter={post.id}
+                  style="display:none"
                 >
                   <i class="fa-regular fa-eye"></i>
                   <span class="counter-val">...</span> kali dibaca
@@ -162,22 +163,24 @@ const jsonLd = {
   </div>
 </BaseLayout>
 
-<script>
-  // Ambil view count untuk setiap artikel di seri ini
-  async function loadCounts() {
-    const elements = document.querySelectorAll('[data-counter]');
-    await Promise.all(Array.from(elements).map(async (el) => {
-      const slug = (el as HTMLElement).dataset.counter;
-      const valEl = el.querySelector('.counter-val');
-      if (!slug || !valEl) return;
-      try {
-        const res = await fetch(`https://api.counterapi.dev/v1/rizkyrinaldi-blog/${slug}`);
-        const data = await res.json();
-        valEl.textContent = (data.count ?? 0).toLocaleString('id-ID');
-      } catch {
-        valEl.textContent = '—';
-      }
-    }));
-  }
-  loadCounts();
+<script define:vars={{ viewsApi: VIEWS_API }}>
+  // Menampilkan jumlah dibaca tiap artikel dalam seri (hanya membaca, tidak menambah).
+  // Tersembunyi bila layanan belum diatur atau gagal.
+  (async function () {
+    if (!viewsApi) return;
+    const boxes = Array.prototype.slice.call(document.querySelectorAll('[data-counter]'));
+    if (boxes.length === 0) return;
+    const slugs = boxes.map(function (el) { return el.getAttribute('data-counter'); });
+    try {
+      const res = await fetch(viewsApi + '/views?slugs=' + slugs.map(encodeURIComponent).join(','));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      boxes.forEach(function (el) {
+        const valEl = el.querySelector('.counter-val');
+        const n = data.counts && data.counts[el.getAttribute('data-counter')];
+        if (valEl) valEl.textContent = Number(n || 0).toLocaleString('id-ID');
+        el.style.display = '';
+      });
+    } catch (e) { /* gagal: biarkan tersembunyi */ }
+  })();
 </script>
