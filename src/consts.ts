@@ -7,4 +7,4 @@ export const SITE_URL = 'https://rizkyrinaldi.my.id';
 // Alamat Worker penghitung kunjungan (Cloudflare), tanpa garis miring di akhir.
 // Contoh: 'https://blog-views.namaakun.workers.dev'
 // Biarkan kosong ('') bila belum dipasang: penghitung otomatis disembunyikan.
-export const VIEWS_API = '';
+export const VIEWS_API = 'https://blog-views.rizkyrinaldi-staira.workers.dev';
