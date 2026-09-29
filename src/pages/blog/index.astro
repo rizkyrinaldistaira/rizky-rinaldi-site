@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import FormattedDate from '../../components/FormattedDate.astro';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
+import { SITE_TITLE, SITE_URL } from '../../consts';
 
 const allPosts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
@@ -11,59 +11,176 @@ const allPosts = (await getCollection('blog')).sort(
 const seriesPosts = allPosts.filter(p => p.data.series);
 const standalonePosts = allPosts.filter(p => !p.data.series);
 
-const seriesMap: Record<string, typeof allPosts> = {};
+type SeriesData = {
+  posts: typeof allPosts;
+  description?: string;
+  icon?: string;
+};
+const seriesMap: Record<string, SeriesData> = {};
 for (const post of seriesPosts) {
   const key = post.data.series!;
-  if (!seriesMap[key]) seriesMap[key] = [];
-  seriesMap[key].push(post);
+  if (!seriesMap[key]) {
+    seriesMap[key] = {
+      posts: [],
+      description: post.data.seriesDescription,
+      icon: post.data.seriesIcon,
+    };
+  }
+  seriesMap[key].posts.push(post);
 }
 for (const key in seriesMap) {
-  seriesMap[key].sort((a, b) => (a.data.seriesPart ?? 0) - (b.data.seriesPart ?? 0));
+  seriesMap[key].posts.sort((a, b) => (a.data.seriesPart ?? 0) - (b.data.seriesPart ?? 0));
 }
+
+function toSlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+const totalSeries = Object.keys(seriesMap).length;
+const totalArtikel = allPosts.length;
 ---
 
-<BaseLayout title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
-  <main class="max-w-4xl mx-auto px-4 py-12 pt-32">
-    <h1 class="text-3xl font-bold mb-2">📚 Blog</h1>
-    <p class="text-slate-500 mb-8">Artikel tutorial, seri pembelajaran, dan tips praktis.</p>
+<BaseLayout
+  title={`Blog & Pembelajaran | ${SITE_TITLE}`}
+  description="Kumpulan artikel, panduan praktis, dan seri pembelajaran seputar teknologi informasi dan metodologi penelitian oleh Rizky Rinaldi."
+  canonical={`${SITE_URL}/blog`}
+  pageType="website"
+>
+
+  <!-- Hero -->
+  <section class="bg-white border-b border-slate-100 pt-32 pb-14">
+    <div class="max-w-5xl mx-auto px-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-1 h-7 bg-amber-500 rounded-full"></div>
+        <span class="text-amber-600 font-semibold text-xs uppercase tracking-[0.15em]">Blog & Pembelajaran</span>
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-extrabold text-slate-800 mb-4 leading-tight">
+        Ruang Belajar Digital
+      </h1>
+      <p class="text-slate-500 text-lg max-w-2xl leading-relaxed">
+        Kumpulan artikel, panduan praktis, dan seri pembelajaran seputar teknologi informasi dan metodologi penelitian.
+      </p>
+      <!-- Stats -->
+      <div class="flex items-center gap-8 mt-8">
+        <div class="flex items-center gap-2 text-slate-500 text-sm">
+          <i class="fa-solid fa-layer-group text-amber-500"></i>
+          <span><strong class="text-slate-700">{totalSeries}</strong> seri topik</span>
+        </div>
+        <div class="flex items-center gap-2 text-slate-500 text-sm">
+          <i class="fa-solid fa-file-lines text-amber-500"></i>
+          <span><strong class="text-slate-700">{totalArtikel}</strong> artikel</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="max-w-5xl mx-auto px-6 py-14">
 
     <!-- SERI PEMBELAJARAN -->
-    <div class="text-xl font-bold mt-10 mb-4 border-b-2 border-yellow-500 pb-2">🗂️ Seri Pembelajaran</div>
-    {Object.keys(seriesMap).length > 0 ? (
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {Object.entries(seriesMap).map(([seriesName, posts]) => (
-          <a href={`/blog/${posts[0].id}`}
-            class="border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-shadow no-underline text-inherit">
-            <h3 class="font-semibold text-lg mb-1">{seriesName}</h3>
-            <div class="text-sm text-slate-400 mb-2">{posts.length} artikel</div>
-            <div class="text-sm text-slate-500 space-y-1">
-              {posts.slice(0, 3).map((p) => (
-                <div>Part {p.data.seriesPart}: {p.data.title}</div>
-              ))}
-              {posts.length > 3 && <div>...dan {posts.length - 3} lagi</div>}
-            </div>
-          </a>
-        ))}
+    <section class="mb-16">
+      <div class="flex items-center justify-between mb-7">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+            <i class="fa-solid fa-layer-group text-amber-600 text-sm"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-slate-800">Seri Pembelajaran</h2>
+            <p class="text-xs text-slate-400">Materi terstruktur & berurutan</p>
+          </div>
+        </div>
       </div>
-    ) : (
-      <p class="text-slate-400 text-sm">Belum ada seri. Segera hadir!</p>
-    )}
 
-    <!-- ARTIKEL LEPAS -->
-    <div class="text-xl font-bold mt-10 mb-4 border-b-2 border-yellow-500 pb-2">📝 Artikel Terbaru</div>
-    {standalonePosts.length > 0 ? (
-      <ul class="space-y-3">
-        {standalonePosts.map(post => (
-          <li class="flex justify-between items-baseline border-b border-slate-100 pb-3">
-            <a href={`/blog/${post.id}`} class="font-medium hover:underline">{post.data.title}</a>
-            <span class="text-sm text-slate-400 whitespace-nowrap ml-4">
-              <FormattedDate date={post.data.pubDate} />
-            </span>
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p class="text-slate-400 text-sm">Belum ada artikel lepas.</p>
-    )}
-  </main>
+      {Object.keys(seriesMap).length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          {Object.entries(seriesMap).map(([name, { posts, description, icon }]) => (
+            <a
+              href={`/blog/series/${toSlug(name)}`}
+              class="group relative bg-white border border-slate-200 rounded-2xl p-6 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-50 transition-all duration-300 no-underline overflow-hidden"
+            >
+              <!-- Accent bar -->
+              <div class="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-amber-400 to-amber-200 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+              <div class="flex items-start gap-4">
+                <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 transition-colors">
+                  <i class={`fa-solid ${icon ?? 'fa-book-open'} text-amber-600`}></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <h3 class="font-bold text-slate-800 text-base mb-2 group-hover:text-amber-700 transition-colors leading-snug">
+                    {name}
+                  </h3>
+                  {description && (
+                    <p class="text-slate-500 text-sm mb-4 line-clamp-2 leading-relaxed">{description}</p>
+                  )}
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full">
+                      <i class="fa-solid fa-list-ol"></i>
+                      <span>{posts.length} artikel</span>
+                    </div>
+                    <div class="flex items-center gap-1 text-xs font-semibold text-amber-600 group-hover:gap-2 transition-all">
+                      <span>Lihat seri</span>
+                      <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div class="bg-white border border-dashed border-slate-200 rounded-2xl px-6 py-12 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-book-open text-slate-300 text-xl"></i>
+          </div>
+          <p class="text-slate-400 text-sm">Seri pembelajaran segera hadir.</p>
+        </div>
+      )}
+    </section>
+
+    <!-- ARTIKEL TERBARU -->
+    <section>
+      <div class="flex items-center gap-3 mb-7">
+        <div class="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+          <i class="fa-solid fa-newspaper text-slate-500 text-sm"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-slate-800">Artikel Terbaru</h2>
+          <p class="text-xs text-slate-400">Tulisan lepas & tips praktis</p>
+        </div>
+      </div>
+
+      {standalonePosts.length > 0 ? (
+        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden divide-y divide-slate-100">
+          {standalonePosts.map((post) => (
+            <a
+              href={`/blog/${post.id}`}
+              class="flex items-center gap-5 px-6 py-4 hover:bg-amber-50 transition-colors group no-underline"
+            >
+              <div class="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-100 transition-colors">
+                <i class="fa-regular fa-file-lines text-slate-400 group-hover:text-amber-600 text-sm transition-colors"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="font-semibold text-slate-700 group-hover:text-amber-700 transition-colors truncate text-sm">
+                  {post.data.title}
+                </div>
+                {post.data.description && (
+                  <div class="text-xs text-slate-400 truncate mt-0.5">{post.data.description}</div>
+                )}
+              </div>
+              <div class="flex-shrink-0 text-xs text-slate-400 whitespace-nowrap">
+                <FormattedDate date={post.data.pubDate} />
+              </div>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div class="bg-white border border-dashed border-slate-200 rounded-2xl px-6 py-12 text-center">
+          <div class="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+            <i class="fa-solid fa-pen-to-square text-slate-300 text-xl"></i>
+          </div>
+          <p class="text-slate-400 text-sm">Belum ada artikel lepas. Segera hadir!</p>
+        </div>
+      )}
+    </section>
+
+  </div>
 </BaseLayout>
