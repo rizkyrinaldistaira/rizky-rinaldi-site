@@ -1,0 +1,22 @@
+{
+  "name": "blog-profesional",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && npm run pagefind",
+    "preview": "astro preview",
+    "astro": "astro",
+    "pagefind": "npx pagefind --site dist --output-path dist/pagefind"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.0.0",
+    "astro": "^7.0.7"
+  },
+  "devDependencies": {
+    "@astrojs/rss": "^4.0.19",
+    "@tailwindcss/typography": "^0.5.10",
+    "autoprefixer": "^10.5.2",
+    "pagefind": "^1.0.0",
+    "tailwindcss": "^3.4.0"
+  }
+}

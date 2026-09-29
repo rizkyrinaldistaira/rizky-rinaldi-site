@@ -1,0 +1,143 @@
+---
+// src/layouts/BaseLayout.astro
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+import '../styles/global.css';
+
+export interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonical?: string;
+  pageType?: 'website' | 'article';
+}
+
+const {
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
+  ogImage = 'https://ui-avatars.com/api/?name=Rizky+Rinaldi&size=400&background=D97706&color=fff&bold=true',
+  canonical = 'https://rizkyrinaldi.my.id',
+  pageType = 'website',
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="id" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content="Rizky Rinaldi, S.Kom., M.Kom." />
+    <meta name="robots" content="index, follow" />
+    <meta name="copyright" content="Rizky Rinaldi" />
+    <meta name="geo.placename" content="Deli Serdang, Sumatera Utara, Indonesia" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={pageType === 'article' ? 'article' : 'profile'} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content="Portfolio & Layanan Rizky Rinaldi" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Canonical -->
+    <link rel="canonical" href={canonical} />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@graph': [
+        {
+          '@type': 'Person',
+          '@id': 'https://rizkyrinaldi.my.id/#person',
+          name: 'Rizky Rinaldi, S.Kom., M.Kom.',
+          jobTitle: 'Dosen & IT Professional',
+          worksFor: {
+            '@type': 'EducationalOrganization',
+            name: 'STAI Raudhatul Akmal Deli Serdang',
+            address: {
+              '@type': 'PostalAddress',
+              streetAddress: 'Jl. Nusa Indah Gg Melati, Desa Tanjung Sari, Kecamatan Batang Kuis',
+              addressLocality: 'Deli Serdang',
+              addressRegion: 'Sumatera Utara',
+              postalCode: '20372',
+              addressCountry: 'ID',
+            },
+          },
+          url: 'https://rizkyrinaldi.my.id',
+          image: 'https://rizkyrinaldi.my.id/myfoto.jpg',
+          email: 'mailto:rizkyrinaldi.staira@gmail.com',
+          telephone: '+6282160052217',
+          sameAs: [
+            'https://scholar.google.com/citations?user=RHoZrJ4AAAAJ',
+            'https://orcid.org/0000-0001-7627-2633',
+          ],
+          knowsAbout: [
+            'Educational Technology',
+            'Artificial Intelligence in Education',
+            'Digital Learning',
+            'Decision Support Systems',
+            'Web Development',
+            'Systematic Literature Review',
+          ],
+        },
+        {
+          '@type': 'ProfessionalService',
+          '@id': 'https://rizkyrinaldi.my.id/#service',
+          name: 'Layanan IT & Publikasi Ilmiah Rizky Rinaldi',
+          image: 'https://rizkyrinaldi.my.id/myfoto.jpg',
+          telephone: '+6282160052217',
+          url: 'https://rizkyrinaldi.my.id',
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: 'Dusun IX Gg Sepakat, Tj. Sari, Bt. Kuis',
+            addressLocality: 'Deli Serdang',
+            addressRegion: 'Sumatera Utara',
+            addressCountry: 'ID',
+          },
+          priceRange: '$$',
+          offers: [
+            {
+              '@type': 'Offer',
+              itemOffered: {
+                '@type': 'Service',
+                name: 'Pembuatan Website Sekolah, Kampus, Perusahaan, dan Toko Online',
+              },
+            },
+            {
+              '@type': 'Offer',
+              itemOffered: {
+                '@type': 'Service',
+                name: 'Pendampingan Kepenulisan dan Publikasi Jurnal Ilmiah Nasional',
+              },
+            },
+          ],
+        },
+      ],
+    })} />
+  </head>
+  <body class="bg-slate-50 text-slate-800 antialiased">
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

@@ -1,0 +1,109 @@
+---
+// src/components/Header.astro
+---
+
+<header>
+  <nav
+    class="fixed w-full z-50 transition-all duration-300 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm"
+    aria-label="Menu Utama"
+  >
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-20 items-center">
+        <!-- Logo -->
+        <div class="flex-shrink-0 flex items-center gap-2">
+          <span class="text-2xl text-gold-600" aria-hidden="true">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </span>
+          <a href="/" class="font-bold text-xl tracking-tight text-dark hover:no-underline">
+            Rizky<span class="text-gold-600">Rinaldi.</span>
+          </a>
+        </div>
+
+        <!-- Desktop Navigation -->
+        <div class="hidden md:flex space-x-8 items-center">
+          <a href="/" class="text-slate-600 hover:text-gold-600 font-medium transition-colors">Beranda</a>
+          <a href="/#profil" class="text-slate-600 hover:text-gold-600 font-medium transition-colors">Profil</a>
+          <a href="/#akademis" class="text-slate-600 hover:text-gold-600 font-medium transition-colors">Akademis</a>
+          <a href="/#layanan" class="text-slate-600 hover:text-gold-600 font-medium transition-colors">Layanan Jasa</a>
+          <a href="/blog" class="text-slate-600 hover:text-gold-600 font-medium transition-colors">Blog</a>
+          <a
+            href="/#kontak"
+            class="bg-gradient-to-r from-gold-500 to-gold-600 text-white px-6 py-2.5 rounded-full font-semibold hover:shadow-lg hover:shadow-gold-500/30 transition-all"
+            aria-label="Hubungi Rizky Rinaldi melalui kontak langsung"
+          >
+            Hubungi Saya
+          </a>
+        </div>
+
+        <!-- Mobile Hamburger Button -->
+        <button
+          id="mobile-menu-btn"
+          class="md:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+          aria-label="Buka menu navigasi"
+          aria-expanded="false"
+          aria-controls="mobile-menu"
+        >
+          <span class="hamburger-line block w-6 h-0.5 bg-slate-700 transition-all duration-300"></span>
+          <span class="hamburger-line block w-6 h-0.5 bg-slate-700 transition-all duration-300"></span>
+          <span class="hamburger-line block w-6 h-0.5 bg-slate-700 transition-all duration-300"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div
+      id="mobile-menu"
+      class="md:hidden hidden border-t border-gray-100 bg-white/95 backdrop-blur-md"
+    >
+      <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col space-y-1">
+        <a href="/" class="block px-4 py-3 text-slate-600 hover:text-gold-600 hover:bg-gold-50 rounded-lg font-medium transition-colors">Beranda</a>
+        <a href="/#profil" class="mobile-nav-link block px-4 py-3 text-slate-600 hover:text-gold-600 hover:bg-gold-50 rounded-lg font-medium transition-colors">Profil</a>
+        <a href="/#akademis" class="mobile-nav-link block px-4 py-3 text-slate-600 hover:text-gold-600 hover:bg-gold-50 rounded-lg font-medium transition-colors">Akademis</a>
+        <a href="/#layanan" class="mobile-nav-link block px-4 py-3 text-slate-600 hover:text-gold-600 hover:bg-gold-50 rounded-lg font-medium transition-colors">Layanan Jasa</a>
+        <a href="/blog" class="block px-4 py-3 text-slate-600 hover:text-gold-600 hover:bg-gold-50 rounded-lg font-medium transition-colors">Blog</a>
+        <a
+          href="/#kontak"
+          class="mobile-nav-link mx-4 mt-2 block text-center bg-gradient-to-r from-gold-500 to-gold-600 text-white px-6 py-3 rounded-full font-semibold transition-all"
+        >
+          Hubungi Saya
+        </a>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<script is:inline>
+  const btn = document.getElementById('mobile-menu-btn');
+  const menu = document.getElementById('mobile-menu');
+  const lines = btn.querySelectorAll('.hamburger-line');
+
+  function toggleMenu() {
+    const isOpen = !menu.classList.contains('hidden');
+    menu.classList.toggle('hidden', isOpen);
+    btn.setAttribute('aria-expanded', String(!isOpen));
+
+    // Animate hamburger to X
+    if (!isOpen) {
+      lines[0].style.transform = 'translateY(8px) rotate(45deg)';
+      lines[1].style.opacity = '0';
+      lines[2].style.transform = 'translateY(-8px) rotate(-45deg)';
+    } else {
+      lines[0].style.transform = '';
+      lines[1].style.opacity = '';
+      lines[2].style.transform = '';
+    }
+  }
+
+  btn.addEventListener('click', toggleMenu);
+
+  // Close on nav link click (for anchor links on same page)
+  document.querySelectorAll('.mobile-nav-link').forEach((link) => {
+    link.addEventListener('click', () => {
+      menu.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+      lines[0].style.transform = '';
+      lines[1].style.opacity = '';
+      lines[2].style.transform = '';
+    });
+  });
+</script>
