@@ -1,145 +1,69 @@
 ---
-import BaseHead from '../components/BaseHead.astro';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
-import FormattedDate from '../components/FormattedDate.astro';
 import { getCollection } from 'astro:content';
-import { SITE_TITLE, SITE_DESCRIPTION } from '../consts';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FormattedDate from '../../components/FormattedDate.astro';
+import { SITE_TITLE, SITE_DESCRIPTION } from '../../consts';
 
 const allPosts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf()
 );
 
-// Pisah artikel berseri dan artikel lepas
 const seriesPosts = allPosts.filter(p => p.data.series);
 const standalonePosts = allPosts.filter(p => !p.data.series);
 
-// Kelompokkan artikel berseri per nama seri
 const seriesMap: Record<string, typeof allPosts> = {};
 for (const post of seriesPosts) {
   const key = post.data.series!;
   if (!seriesMap[key]) seriesMap[key] = [];
   seriesMap[key].push(post);
 }
-
-// Urutkan tiap seri berdasarkan seriesPart
 for (const key in seriesMap) {
   seriesMap[key].sort((a, b) => (a.data.seriesPart ?? 0) - (b.data.seriesPart ?? 0));
 }
 ---
 
-<!doctype html>
-<html lang="id">
-  <head>
-    <BaseHead title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION} />
-    <style>
-      main { max-width: 800px; margin: auto; padding: 1rem 1.5rem; }
-      h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-      .section-title {
-        font-size: 1.3rem;
-        font-weight: 700;
-        margin: 2.5rem 0 1rem;
-        border-bottom: 2px solid #D97706;
-        padding-bottom: 0.4rem;
-      }
+<BaseLayout title={`Blog | ${SITE_TITLE}`} description={SITE_DESCRIPTION}>
+  <main class="max-w-4xl mx-auto px-4 py-12 pt-32">
+    <h1 class="text-3xl font-bold mb-2">📚 Blog</h1>
+    <p class="text-slate-500 mb-8">Artikel tutorial, seri pembelajaran, dan tips praktis.</p>
 
-      /* --- Kartu Seri --- */
-      .series-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 1rem;
-      }
-      .series-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        padding: 1.2rem 1.5rem;
-        text-decoration: none;
-        color: inherit;
-        transition: box-shadow 0.2s;
-      }
-      .series-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
-      .series-card h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
-      .series-card .count { font-size: 0.82rem; color: #888; }
-      .series-card .preview {
-        font-size: 0.88rem;
-        color: #555;
-        margin-top: 0.5rem;
-        line-height: 1.6;
-      }
+    <!-- SERI PEMBELAJARAN -->
+    <div class="text-xl font-bold mt-10 mb-4 border-b-2 border-yellow-500 pb-2">🗂️ Seri Pembelajaran</div>
+    {Object.keys(seriesMap).length > 0 ? (
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {Object.entries(seriesMap).map(([seriesName, posts]) => (
+          <a href={`/blog/${posts[0].id}`}
+            class="border border-slate-200 rounded-xl p-5 hover:shadow-lg transition-shadow no-underline text-inherit">
+            <h3 class="font-semibold text-lg mb-1">{seriesName}</h3>
+            <div class="text-sm text-slate-400 mb-2">{posts.length} artikel</div>
+            <div class="text-sm text-slate-500 space-y-1">
+              {posts.slice(0, 3).map((p) => (
+                <div>Part {p.data.seriesPart}: {p.data.title}</div>
+              ))}
+              {posts.length > 3 && <div>...dan {posts.length - 3} lagi</div>}
+            </div>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <p class="text-slate-400 text-sm">Belum ada seri. Segera hadir!</p>
+    )}
 
-      /* --- Daftar artikel lepas --- */
-      .post-list { list-style: none; padding: 0; margin: 0; }
-      .post-list li {
-        display: flex;
-        justify-content: space-between;
-        align-items: baseline;
-        padding: 0.7rem 0;
-        border-bottom: 1px solid #f0f0f0;
-        gap: 1rem;
-      }
-      .post-list a {
-        text-decoration: none;
-        font-weight: 500;
-        color: inherit;
-      }
-      .post-list a:hover { text-decoration: underline; }
-      .post-list .date {
-        font-size: 0.82rem;
-        color: #999;
-        white-space: nowrap;
-      }
-
-      .empty-msg {
-        color: #aaa;
-        font-size: 0.9rem;
-        padding: 1rem 0;
-      }
-    </style>
-  </head>
-  <body>
-    <Header />
-    <main>
-      <h1>📚 Blog</h1>
-      <p>Artikel tutorial, seri pembelajaran, dan tips praktis seputar teknologi dan penelitian.</p>
-
-      <!-- SERI PEMBELAJARAN -->
-      <div class="section-title">🗂️ Seri Pembelajaran</div>
-      {Object.keys(seriesMap).length > 0 ? (
-        <div class="series-grid">
-          {Object.entries(seriesMap).map(([seriesName, posts]) => (
-            <a href={`/blog/${posts[0].id}`} class="series-card">
-              <h3>{seriesName}</h3>
-              <div class="count">{posts.length} artikel</div>
-              <div class="preview">
-                {posts.slice(0, 3).map((p) => (
-                  <div>Part {p.data.seriesPart}: {p.data.title}</div>
-                ))}
-                {posts.length > 3 && <div>...dan {posts.length - 3} lagi</div>}
-              </div>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <p class="empty-msg">Belum ada seri pembelajaran. Segera hadir!</p>
-      )}
-
-      <!-- ARTIKEL LEPAS -->
-      <div class="section-title">📝 Artikel Terbaru</div>
-      {standalonePosts.length > 0 ? (
-        <ul class="post-list">
-          {standalonePosts.map(post => (
-            <li>
-              <a href={`/blog/${post.id}`}>{post.data.title}</a>
-              <span class="date">
-                <FormattedDate date={post.data.pubDate} />
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p class="empty-msg">Belum ada artikel lepas.</p>
-      )}
-    </main>
-    <Footer />
-  </body>
-</html>
+    <!-- ARTIKEL LEPAS -->
+    <div class="text-xl font-bold mt-10 mb-4 border-b-2 border-yellow-500 pb-2">📝 Artikel Terbaru</div>
+    {standalonePosts.length > 0 ? (
+      <ul class="space-y-3">
+        {standalonePosts.map(post => (
+          <li class="flex justify-between items-baseline border-b border-slate-100 pb-3">
+            <a href={`/blog/${post.id}`} class="font-medium hover:underline">{post.data.title}</a>
+            <span class="text-sm text-slate-400 whitespace-nowrap ml-4">
+              <FormattedDate date={post.data.pubDate} />
+            </span>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p class="text-slate-400 text-sm">Belum ada artikel lepas.</p>
+    )}
+  </main>
+</BaseLayout>
