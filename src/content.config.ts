@@ -11,10 +11,17 @@ const blog = defineCollection({
       pubDate: z.coerce.date(),
       updatedDate: z.coerce.date().optional(),
       heroImage: z.string().optional(),
+
+      // Seri pembelajaran
       series: z.string().optional(),
       seriesPart: z.number().optional(),
       seriesDescription: z.string().optional(),
       seriesIcon: z.string().optional(),
+
+      // Penelusuran dan penyaringan (semua opsional)
+      category: z.string().optional(),
+      tags: z.array(z.string()).default([]),
+      icon: z.string().optional(),
     }),
 });
 

@@ -1,0 +1,958 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE_TITLE, SITE_URL } from '../../consts';
+
+/* ================= PENGATURAN (silakan ubah) ================= */
+const PAGE_SIZE = 8;                 // jumlah kartu artikel per "halaman"
+const SERIES_PREVIEW = 4;            // jumlah kartu seri yang tampil sebelum "Tampilkan semua seri"
+const LATEST_INCLUDES_SERIES = true; // true: "Artikel Terbaru" memuat juga bagian-bagian seri
+const NEW_BADGE_DAYS = 30;           // label "Baru" untuk artikel yang terbit dalam N hari terakhir
+const WORDS_PER_MINUTE = 200;        // dasar hitung estimasi waktu baca
+const DEFAULT_CATEGORY = 'Umum';     // kategori bila artikel belum punya "category"
+const FALLBACK_ICON = 'fa-file-lines';
+const CATEGORY_ICONS: Record<string, string> = {
+  'Metodologi Penelitian': 'fa-flask',
+  'Panduan Skripsi': 'fa-graduation-cap',
+  'Pengembangan Sistem': 'fa-code',
+  'Umum': 'fa-newspaper',
+};
+/* ============================================================= */
+
+// Normalisasi teks untuk pencarian (harus sama dengan yang dipakai skrip di bawah)
+const norm = (s: string) =>
+  (s ?? '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+const fmtDate = (d: Date) =>
+  d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const toSlug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+const minutesOf = (body?: string) =>
+  Math.max(1, Math.ceil((body ?? '').split(/\s+/).filter(Boolean).length / WORDS_PER_MINUTE));
+
+const entries = (await getCollection('blog')).sort(
+  (a, b) =>
+    b.data.pubDate.valueOf() - a.data.pubDate.valueOf() ||
+    a.data.title.localeCompare(b.data.title, 'id')
+);
+const now = Date.now();
+
+type Item = {
+  id: string;
+  title: string;
+  description: string;
+  date: Date;
+  minutes: number;
+  category: string;
+  topicKey: string;
+  tags: string[];
+  series?: string;
+  part?: number;
+  seriesDescription?: string;
+  seriesIcon?: string;
+  icon: string;
+  isNew: boolean;
+  search: string;
+};
+
+const items: Item[] = entries.map((p) => {
+  const category = p.data.category ?? DEFAULT_CATEGORY;
+  const tags = p.data.tags ?? [];
+  return {
+    id: p.id,
+    title: p.data.title,
+    description: p.data.description,
+    date: p.data.pubDate,
+    minutes: minutesOf(p.body),
+    category,
+    topicKey: norm(category),
+    tags,
+    series: p.data.series,
+    part: p.data.seriesPart,
+    seriesDescription: p.data.seriesDescription,
+    seriesIcon: p.data.seriesIcon,
+    icon:
+      p.data.icon ??
+      (p.data.series ? p.data.seriesIcon : undefined) ??
+      CATEGORY_ICONS[category] ??
+      FALLBACK_ICON,
+    isNew: (now - p.data.pubDate.valueOf()) / 86400000 <= NEW_BADGE_DAYS,
+    search: norm(
+      [
+        p.data.title,
+        p.data.description,
+        category,
+        ...tags,
+        p.data.series ?? '',
+        p.data.seriesPart ? `part ${p.data.seriesPart}` : '',
+      ].join(' ')
+    ),
+  };
+});
+
+// ---- Seri ----
+type Series = {
+  name: string;
+  slug: string;
+  description?: string;
+  icon: string;
+  posts: Item[];
+  minutes: number;
+  topicKeys: string[];
+  tagKeys: string[];
+  latest: number;
+  first: number;
+  search: string;
+};
+const seriesMap = new Map<string, Series>();
+for (const it of items) {
+  if (!it.series) continue;
+  let s = seriesMap.get(it.series);
+  if (!s) {
+    s = {
+      name: it.series,
+      slug: toSlug(it.series),
+      description: undefined,
+      icon: 'fa-book-open',
+      posts: [],
+      minutes: 0,
+      topicKeys: [],
+      tagKeys: [],
+      latest: 0,
+      first: Infinity,
+      search: '',
+    };
+    seriesMap.set(it.series, s);
+  }
+  s.posts.push(it);
+  s.description ??= it.seriesDescription;
+  if (it.seriesIcon) s.icon = it.seriesIcon;
+}
+const seriesList: Series[] = [...seriesMap.values()].map((s) => {
+  s.posts.sort((a, b) => (a.part ?? 0) - (b.part ?? 0));
+  s.minutes = s.posts.reduce((n, p) => n + p.minutes, 0);
+  s.topicKeys = [...new Set(s.posts.map((p) => p.topicKey))];
+  s.tagKeys = [...new Set(s.posts.flatMap((p) => p.tags.map(norm)))];
+  s.latest = Math.max(...s.posts.map((p) => p.date.valueOf()));
+  s.first = Math.min(...s.posts.map((p) => p.date.valueOf()));
+  s.search = norm(
+    [
+      s.name,
+      s.description ?? '',
+      ...s.posts.map((p) => p.title),
+      ...s.posts.flatMap((p) => p.tags),
+      ...s.posts.map((p) => p.category),
+    ].join(' ')
+  );
+  return s;
+});
+seriesList.sort((a, b) => b.latest - a.latest || a.name.localeCompare(b.name, 'id'));
+
+// ---- Topik (kategori) dan tag ----
+const topicCounts = new Map<string, { label: string; key: string; count: number; icon: string }>();
+for (const it of items) {
+  const t = topicCounts.get(it.topicKey);
+  if (t) t.count++;
+  else
+    topicCounts.set(it.topicKey, {
+      label: it.category,
+      key: it.topicKey,
+      count: 1,
+      icon: CATEGORY_ICONS[it.category] ?? FALLBACK_ICON,
+    });
+}
+const topics = [...topicCounts.values()].sort(
+  (a, b) => b.count - a.count || a.label.localeCompare(b.label, 'id')
+);
+
+const tagCounts = new Map<string, { label: string; key: string; count: number }>();
+for (const it of items) {
+  for (const tag of it.tags) {
+    const key = norm(tag);
+    if (!key) continue;
+    const t = tagCounts.get(key);
+    if (t) t.count++;
+    else tagCounts.set(key, { label: tag, key, count: 1 });
+  }
+}
+const allTags = [...tagCounts.values()].sort(
+  (a, b) => b.count - a.count || a.label.localeCompare(b.label, 'id')
+);
+const popularTags = allTags.slice(0, 6);
+
+// ---- Statistik dan ajakan "mulai dari sini" ----
+const totalMinutes = items.reduce((n, i) => n + i.minutes, 0);
+const readingLabel =
+  totalMinutes >= 60 ? `${Math.round(totalMinutes / 60)} jam bacaan` : `${totalMinutes} menit bacaan`;
+const starter = [...seriesList].sort(
+  (a, b) => b.posts.length - a.posts.length || b.latest - a.latest
+)[0];
+
+// ---- Data terstruktur (SEO) ----
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: `Blog & Pembelajaran | ${SITE_TITLE}`,
+  url: `${SITE_URL}/blog`,
+  inLanguage: 'id',
+  author: { '@type': 'Person', name: 'Rizky Rinaldi, S.Kom., M.Kom.', url: SITE_URL },
+  blogPost: items.slice(0, 10).map((i) => ({
+    '@type': 'BlogPosting',
+    headline: i.title,
+    description: i.description,
+    datePublished: i.date.toISOString(),
+    url: `${SITE_URL}/blog/${i.id}`,
+    keywords: i.tags.join(', '),
+  })),
+};
+---
+
+<BaseLayout
+  title={`Blog & Pembelajaran | ${SITE_TITLE}`}
+  description="Kumpulan artikel, panduan praktis, dan seri pembelajaran seputar teknologi informasi, metodologi penelitian, dan penyusunan skripsi oleh Rizky Rinaldi."
+  canonical={`${SITE_URL}/blog`}
+  pageType="website"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} slot="head" />
+
+  <div
+    class="bf"
+    data-page={PAGE_SIZE}
+    data-series-preview={SERIES_PREVIEW}
+    data-include-series={String(LATEST_INCLUDES_SERIES)}
+    data-total-articles={items.length}
+    data-total-series={seriesList.length}
+  >
+    <!-- ====================== HERO ====================== -->
+    <section class="relative overflow-hidden bg-white border-b border-slate-100 pt-32 pb-10">
+      <div class="bf-glow" aria-hidden="true"></div>
+      <div class="relative max-w-5xl mx-auto px-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-1 h-7 bg-amber-500 rounded-full"></div>
+          <span class="text-amber-600 font-semibold text-xs uppercase tracking-[0.15em]">Blog &amp; Pembelajaran</span>
+        </div>
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-slate-800 mb-4 leading-tight">Ruang Belajar Digital</h1>
+        <p class="text-slate-500 text-lg max-w-2xl leading-relaxed">
+          Artikel, panduan praktis, dan seri pembelajaran seputar teknologi informasi, metodologi penelitian, dan penyusunan skripsi.
+        </p>
+
+        <div class="flex flex-wrap items-center gap-x-8 gap-y-3 mt-7">
+          <div class="flex items-center gap-2 text-slate-500 text-sm">
+            <i class="fa-solid fa-layer-group text-amber-500"></i>
+            <span><strong class="text-slate-700">{seriesList.length}</strong> seri</span>
+          </div>
+          <div class="flex items-center gap-2 text-slate-500 text-sm">
+            <i class="fa-solid fa-file-lines text-amber-500"></i>
+            <span><strong class="text-slate-700">{items.length}</strong> artikel</span>
+          </div>
+          <div class="flex items-center gap-2 text-slate-500 text-sm">
+            <i class="fa-solid fa-tags text-amber-500"></i>
+            <span><strong class="text-slate-700">{topics.length}</strong> topik</span>
+          </div>
+          <div class="flex items-center gap-2 text-slate-500 text-sm">
+            <i class="fa-regular fa-clock text-amber-500"></i>
+            <span>&plusmn; <strong class="text-slate-700">{readingLabel}</strong></span>
+          </div>
+        </div>
+
+        {starter && (
+          <a href={`/blog/${starter.posts[0].id}`} class="bf-starter">
+            <span class="bf-starter-icon"><i class="fa-solid fa-compass"></i></span>
+            <span>
+              Baru di sini? Mulai dari seri <strong>{starter.name}</strong>
+            </span>
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </a>
+        )}
+
+        <!-- ============ PANEL PENCARIAN DAN FILTER ============ -->
+        <div id="finder" class="bf-finder" role="search" aria-label="Cari dan saring artikel" hidden>
+          <div class="bf-search">
+            <i class="fa-solid fa-magnifying-glass bf-search-icon" aria-hidden="true"></i>
+            <label for="q" class="sr-only">Cari artikel, topik, atau tag</label>
+            <input
+              id="q"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Cari artikel, topik, atau tag..."
+            />
+            <button type="button" id="q-clear" class="bf-clear" aria-label="Hapus pencarian" hidden>
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+            <kbd class="bf-kbd" aria-hidden="true">/</kbd>
+          </div>
+
+          <div class="bf-row">
+            <span class="bf-label">Topik</span>
+            <div class="bf-chips">
+              <button type="button" class="bf-chip" data-topic-chip="" aria-pressed="true">
+                <i class="fa-solid fa-border-all"></i> Semua <span class="bf-n">{items.length}</span>
+              </button>
+              {topics.map((t) => (
+                <button type="button" class="bf-chip" data-topic-chip={t.key} aria-pressed="false">
+                  <i class={`fa-solid ${t.icon}`}></i> {t.label} <span class="bf-n">{t.count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div class="bf-row bf-row-split">
+            <div class="bf-segment" role="group" aria-label="Jenis konten">
+              <button type="button" data-type-set="semua" aria-pressed="true">Semua</button>
+              <button type="button" data-type-set="seri" aria-pressed="false">
+                <i class="fa-solid fa-layer-group"></i> Seri
+              </button>
+              <button type="button" data-type-set="lepas" aria-pressed="false">
+                <i class="fa-regular fa-file-lines"></i> Artikel lepas
+              </button>
+            </div>
+
+            <div class="bf-tools">
+              <button type="button" id="tag-toggle" class="bf-chip bf-chip-ghost" aria-expanded="false" aria-controls="tag-panel">
+                <i class="fa-solid fa-tags"></i> Tag <span id="tag-count" class="bf-badge-n" hidden></span>
+                <i class="fa-solid fa-chevron-down bf-caret"></i>
+              </button>
+              <label for="sort" class="sr-only">Urutkan</label>
+              <div class="bf-select">
+                <i class="fa-solid fa-arrow-down-wide-short"></i>
+                <select id="sort">
+                  <option value="terbaru">Terbaru</option>
+                  <option value="terlama">Terlama</option>
+                  <option value="judul">Judul A&ndash;Z</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="tag-panel" class="bf-tagpanel" hidden>
+            <span class="bf-label">Semua tag</span>
+            <div class="bf-chips bf-chips-wrap">
+              {allTags.map((t) => (
+                <button type="button" class="bf-chip bf-chip-sm" data-tag-toggle={t.key} aria-pressed="false">
+                  #{t.label} <span class="bf-n">{t.count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {popularTags.length > 0 && (
+            <div class="bf-row bf-row-pop">
+              <span class="bf-label">Populer</span>
+              <div class="bf-chips">
+                {popularTags.map((t) => (
+                  <button type="button" class="bf-chip bf-chip-sm" data-tag-toggle={t.key} aria-pressed="false">
+                    #{t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div class="bf-foot">
+            <p id="status" class="bf-status" role="status" aria-live="polite"></p>
+            <button type="button" id="reset" class="bf-reset" hidden>
+              <i class="fa-solid fa-rotate-left"></i> Hapus semua filter
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================== HASIL ====================== -->
+    <div class="max-w-5xl mx-auto px-6 py-12">
+
+      <!-- SERI -->
+      <section id="series-section" class="mb-14">
+        <div class="bf-head">
+          <div class="bf-head-icon"><i class="fa-solid fa-layer-group"></i></div>
+          <div>
+            <h2 class="bf-h2">Seri Pembelajaran</h2>
+            <p class="bf-sub">Materi terstruktur dan berurutan <span id="series-count"></span></p>
+          </div>
+        </div>
+
+        <div id="series-grid" class="bf-grid">
+          {seriesList.map((s) => (
+            <article
+              class="bf-card"
+              data-card
+              data-type="seri"
+              data-s={s.search}
+              data-topic={s.topicKeys.join('|')}
+              data-tags={s.tagKeys.join('|')}
+              data-date={s.latest}
+              data-first={s.first}
+              data-name={norm(s.name)}
+            >
+              <div class="bf-bar"></div>
+              <div class="flex items-start gap-4">
+                <div class="bf-tile"><i class={`fa-solid ${s.icon}`}></i></div>
+                <div class="min-w-0 flex-1">
+                  <div class="bf-badges">
+                    <span class="bf-badge bf-badge-amber"><i class="fa-solid fa-layer-group"></i> Seri Pembelajaran</span>
+                  </div>
+                  <h3 class="bf-title">
+                    <a class="bf-stretch" href={`/blog/series/${s.slug}`} data-title-text data-raw={s.name}>{s.name}</a>
+                  </h3>
+                  {s.description && <p class="bf-desc bf-clamp2">{s.description}</p>}
+                  <ol class="bf-parts">
+                    {s.posts.slice(0, 3).map((p) => (
+                      <li><span>{String(p.part ?? '').padStart(2, '0')}</span>{p.title}</li>
+                    ))}
+                    {s.posts.length > 3 && <li class="bf-parts-more">+ {s.posts.length - 3} artikel lainnya</li>}
+                  </ol>
+                  <div class="bf-foot-row">
+                    <span class="bf-meta">
+                      <i class="fa-solid fa-list-ol"></i> {s.posts.length} artikel
+                      <span class="bf-dot"></span>
+                      <i class="fa-regular fa-clock"></i> &plusmn;{s.minutes} menit
+                    </span>
+                    <span class="bf-go">Lihat seri <i class="fa-solid fa-arrow-right"></i></span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div class="text-center mt-6">
+          <button type="button" id="series-more" class="bf-more" hidden>
+            <span id="series-more-label">Tampilkan semua seri</span> <i class="fa-solid fa-chevron-down"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- ARTIKEL -->
+      <section id="articles-section">
+        <div class="bf-head bf-head-between">
+          <div class="flex items-center gap-3">
+            <div class="bf-head-icon bf-head-icon-slate"><i class="fa-solid fa-newspaper"></i></div>
+            <div>
+              <h2 id="articles-title" class="bf-h2">Artikel Terbaru</h2>
+              <p id="articles-sub" class="bf-sub"></p>
+            </div>
+          </div>
+        </div>
+
+        <div id="articles-grid" class="bf-grid">
+          {items.map((it) => (
+            <article
+              class="bf-card"
+              data-card
+              data-type={it.series ? 'seri' : 'lepas'}
+              data-s={it.search}
+              data-topic={it.topicKey}
+              data-tags={it.tags.map(norm).join('|')}
+              data-date={it.date.valueOf()}
+              data-name={norm(it.title)}
+            >
+              <div class="bf-bar"></div>
+              <div class="flex items-start gap-4">
+                <div class="bf-tile"><i class={`fa-solid ${it.icon}`}></i></div>
+                <div class="min-w-0 flex-1">
+                  <div class="bf-badges">
+                    {it.series ? (
+                      <span class="bf-badge bf-badge-amber">
+                        <i class="fa-solid fa-layer-group"></i> Seri{it.part ? <> &middot; Part {it.part}</> : ''}
+                      </span>
+                    ) : (
+                      <span class="bf-badge bf-badge-slate">
+                        <i class="fa-regular fa-file-lines"></i> Artikel lepas
+                      </span>
+                    )}
+                    {it.isNew && <span class="bf-badge bf-badge-new">Baru</span>}
+                  </div>
+                  <h3 class="bf-title">
+                    <a class="bf-stretch" href={`/blog/${it.id}`} data-title-text data-raw={it.title}>{it.title}</a>
+                  </h3>
+                  <p class="bf-desc bf-clamp3">{it.description}</p>
+
+                  {it.series && <p class="bf-from"><i class="fa-solid fa-turn-up"></i> dari seri {it.series}</p>}
+
+                  <div class="bf-meta bf-meta-wrap">
+                    <span><i class="fa-regular fa-calendar"></i> <time datetime={it.date.toISOString()}>{fmtDate(it.date)}</time></span>
+                    <span class="bf-dot"></span>
+                    <span><i class="fa-regular fa-clock"></i> {it.minutes} menit baca</span>
+                    <span class="bf-dot"></span>
+                    <button type="button" class="bf-catbtn" data-topic-set={it.topicKey}>
+                      <i class="fa-regular fa-folder"></i> {it.category}
+                    </button>
+                  </div>
+
+                  {it.tags.length > 0 && (
+                    <div class="bf-tags">
+                      {it.tags.slice(0, 3).map((tag) => (
+                        <button type="button" class="bf-tag" data-tag-toggle={norm(tag)} aria-pressed="false">#{tag}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <div class="text-center mt-8">
+          <button type="button" id="more" class="bf-more" hidden>
+            <span id="more-label">Tampilkan lebih banyak</span> <i class="fa-solid fa-arrow-down"></i>
+          </button>
+        </div>
+      </section>
+
+      <!-- KOSONG -->
+      <div id="empty" class="bf-empty" hidden>
+        <div class="bf-empty-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <h3>Tidak ada yang cocok <span id="empty-query"></span></h3>
+        <p>Coba kata kunci yang lebih singkat, periksa ejaan, atau kurangi filter yang aktif.</p>
+        <button type="button" id="reset-empty" class="bf-more"><i class="fa-solid fa-rotate-left"></i> Hapus semua filter</button>
+        {popularTags.length > 0 && (
+          <div class="bf-empty-tags">
+            <span>Atau coba:</span>
+            {popularTags.slice(0, 4).map((t) => (
+              <button type="button" class="bf-chip bf-chip-sm" data-tag-toggle={t.key} aria-pressed="false">#{t.label}</button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style is:global>
+  .bf [hidden] { display: none !important; }
+
+  /* ---------- Hero ---------- */
+  .bf-glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(55% 60% at 88% 0%, rgba(251, 191, 36, .20), transparent 62%),
+      radial-gradient(40% 45% at 0% 100%, rgba(245, 158, 11, .10), transparent 62%);
+  }
+  .bf-starter {
+    display: inline-flex; align-items: center; gap: .65rem; margin-top: 1.4rem;
+    padding: .45rem .9rem .45rem .5rem; border-radius: 999px; text-decoration: none;
+    background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: .85rem;
+    transition: box-shadow .2s, transform .2s;
+  }
+  .bf-starter:hover { box-shadow: 0 6px 18px -8px rgba(217, 119, 6, .45); transform: translateY(-1px); }
+  .bf-starter-icon {
+    width: 1.7rem; height: 1.7rem; border-radius: 999px; background: #f59e0b; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; font-size: .78rem;
+  }
+
+  /* ---------- Panel pencarian ---------- */
+  .bf-finder {
+    margin-top: 2rem; padding: 1rem; background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 1.25rem; box-shadow: 0 18px 40px -22px rgba(15, 23, 42, .28);
+    scroll-margin-top: 6rem;
+  }
+  .bf-search { position: relative; display: flex; align-items: center; }
+  .bf-search input {
+    width: 100%; font-size: 1rem; color: #1e293b; background: #f8fafc;
+    border: 1px solid #e2e8f0; border-radius: .95rem; outline: none;
+    padding: .9rem 4rem .9rem 2.8rem; transition: border-color .15s, box-shadow .15s, background .15s;
+  }
+  .bf-search input::placeholder { color: #94a3b8; }
+  .bf-search input:focus { background: #fff; border-color: #f59e0b; box-shadow: 0 0 0 4px rgba(245, 158, 11, .16); }
+  .bf-search input::-webkit-search-cancel-button { display: none; }
+  .bf-search-icon { position: absolute; left: 1.05rem; color: #94a3b8; pointer-events: none; }
+  .bf-kbd {
+    position: absolute; right: .9rem; font: 600 .72rem/1 ui-monospace, monospace; color: #94a3b8;
+    border: 1px solid #e2e8f0; border-bottom-width: 2px; border-radius: .4rem; padding: .25rem .45rem; background: #fff;
+  }
+  .bf-clear {
+    position: absolute; right: .55rem; width: 2rem; height: 2rem; border: 0; border-radius: 999px;
+    background: #f1f5f9; color: #64748b; cursor: pointer; z-index: 1;
+  }
+  .bf-clear:hover { background: #fde68a; color: #92400e; }
+  .bf-clear:not([hidden]) ~ .bf-kbd { display: none; }
+
+  .bf-row { display: flex; align-items: center; gap: .75rem; margin-top: .9rem; }
+  .bf-row-split { justify-content: space-between; flex-wrap: wrap; }
+  .bf-row-pop { margin-top: .75rem; }
+  .bf-label { flex: none; font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; min-width: 3.6rem; }
+  .bf-chips { display: flex; gap: .45rem; overflow-x: auto; scrollbar-width: none; padding: .15rem 0; }
+  .bf-chips::-webkit-scrollbar { display: none; }
+  .bf-chips-wrap { flex-wrap: wrap; overflow: visible; }
+  @media (min-width: 720px) { .bf-chips { flex-wrap: wrap; overflow: visible; } }
+
+  .bf-chip {
+    display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap; cursor: pointer;
+    padding: .4rem .8rem; font-size: .82rem; color: #475569; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 999px; transition: all .15s;
+  }
+  .bf-chip i { font-size: .74rem; color: #94a3b8; transition: color .15s; }
+  .bf-chip:hover { border-color: #fcd34d; background: #fffbeb; color: #b45309; }
+  .bf-chip:hover i { color: #d97706; }
+  .bf-chip[aria-pressed="true"] { background: #f59e0b; border-color: #f59e0b; color: #fff; box-shadow: 0 6px 14px -8px rgba(217, 119, 6, .7); }
+  .bf-chip[aria-pressed="true"] i { color: #fff; }
+  .bf-chip-sm { padding: .28rem .65rem; font-size: .78rem; }
+  .bf-chip-ghost[aria-expanded="true"] { background: #fffbeb; border-color: #fcd34d; color: #b45309; }
+  .bf-chip-ghost[aria-expanded="true"] .bf-caret { transform: rotate(180deg); }
+  .bf-caret { font-size: .62rem !important; transition: transform .2s; }
+  .bf-n { font-size: .7rem; opacity: .65; }
+  .bf-badge-n {
+    min-width: 1.15rem; height: 1.15rem; padding: 0 .3rem; border-radius: 999px; background: #f59e0b; color: #fff;
+    font-size: .68rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  .bf-segment { display: inline-flex; padding: .22rem; gap: .15rem; background: #f1f5f9; border-radius: .8rem; }
+  .bf-segment button {
+    display: inline-flex; align-items: center; gap: .4rem; border: 0; cursor: pointer; background: transparent;
+    padding: .38rem .8rem; font-size: .82rem; font-weight: 500; color: #64748b; border-radius: .6rem; transition: all .15s;
+  }
+  .bf-segment button:hover { color: #b45309; }
+  .bf-segment button[aria-pressed="true"] { background: #fff; color: #b45309; box-shadow: 0 1px 4px rgba(15, 23, 42, .12); }
+
+  .bf-tools { display: flex; align-items: center; gap: .55rem; }
+  .bf-select { position: relative; display: inline-flex; align-items: center; }
+  .bf-select i { position: absolute; left: .75rem; font-size: .74rem; color: #94a3b8; pointer-events: none; }
+  .bf-select select {
+    appearance: none; cursor: pointer; font-size: .82rem; color: #475569; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 999px; padding: .4rem 1.9rem .4rem 2rem; outline: none;
+  }
+  .bf-select select:focus-visible { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .16); }
+  .bf-tagpanel .bf-chips-wrap { flex: 1; min-width: 0; max-height: 11rem; overflow-y: auto; padding-right: .25rem; }
+  .bf-tagpanel { margin-top: .9rem; padding: .85rem; background: #f8fafc; border: 1px dashed #e2e8f0; border-radius: .9rem; display: flex; gap: .75rem; flex-wrap: wrap; }
+
+  .bf-foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; padding-top: .8rem; border-top: 1px solid #f1f5f9; }
+  .bf-status { font-size: .82rem; color: #64748b; }
+  .bf-reset { border: 0; background: transparent; cursor: pointer; font-size: .82rem; font-weight: 600; color: #d97706; }
+  .bf-reset:hover { color: #92400e; text-decoration: underline; }
+
+  /* ---------- Judul bagian ---------- */
+  .bf-head { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.6rem; }
+  .bf-head-between { justify-content: space-between; }
+  .bf-head-icon {
+    width: 2.25rem; height: 2.25rem; border-radius: .75rem; background: #fffbeb; color: #d97706;
+    display: flex; align-items: center; justify-content: center; font-size: .85rem; flex: none;
+  }
+  .bf-head-icon-slate { background: #f1f5f9; color: #64748b; }
+  .bf-h2 { font-size: 1.15rem; font-weight: 700; color: #1e293b; line-height: 1.25; }
+  .bf-sub { font-size: .75rem; color: #94a3b8; }
+
+  /* ---------- Kartu ---------- */
+  .bf-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  @media (min-width: 640px) { .bf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .bf-card {
+    position: relative; overflow: hidden; background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 1rem; padding: 1.35rem 1.4rem; transition: border-color .25s, box-shadow .25s, transform .25s;
+  }
+  .bf-card:hover, .bf-card:focus-within {
+    border-color: #fcd34d; transform: translateY(-2px); box-shadow: 0 16px 34px -18px rgba(217, 119, 6, .35);
+  }
+  .bf-bar { position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, #fbbf24, #fde68a); opacity: 0; transition: opacity .25s; }
+  .bf-card:hover .bf-bar, .bf-card:focus-within .bf-bar { opacity: 1; }
+  .bf-tile {
+    width: 3rem; height: 3rem; flex: none; border-radius: .9rem; background: #fffbeb; border: 1px solid #fde68a;
+    color: #d97706; display: flex; align-items: center; justify-content: center; transition: background .25s;
+  }
+  .bf-card:hover .bf-tile { background: #fef3c7; }
+  .bf-badges { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .5rem; }
+  .bf-badge {
+    display: inline-flex; align-items: center; gap: .35rem; font-size: .68rem; font-weight: 600; letter-spacing: .02em;
+    padding: .18rem .55rem; border-radius: 999px;
+  }
+  .bf-badge i { font-size: .62rem; }
+  .bf-badge-amber { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+  .bf-badge-slate { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+  .bf-badge-new { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+  .bf-title { font-size: 1.02rem; font-weight: 700; line-height: 1.38; color: #1e293b; margin-bottom: .4rem; }
+  .bf-title a { color: inherit; text-decoration: none; transition: color .2s; }
+  .bf-card:hover .bf-title a { color: #b45309; }
+  .bf-stretch::after { content: ""; position: absolute; inset: 0; z-index: 1; }
+  .bf-title a:focus-visible { outline: none; }
+  .bf-card:focus-within { outline: 2px solid #f59e0b; outline-offset: 2px; }
+  .bf-desc { font-size: .86rem; line-height: 1.6; color: #64748b; }
+  .bf-clamp2, .bf-clamp3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+  .bf-clamp2 { -webkit-line-clamp: 2; }
+  .bf-clamp3 { -webkit-line-clamp: 3; }
+  .bf-from { margin-top: .5rem; font-size: .74rem; color: #94a3b8; }
+  .bf-from i { font-size: .65rem; margin-right: .2rem; transform: rotate(90deg); display: inline-block; }
+  .bf-parts { list-style: none; margin: .75rem 0 0; padding: 0; display: grid; gap: .3rem; }
+  .bf-parts li { font-size: .78rem; color: #64748b; display: flex; gap: .55rem; line-height: 1.4; }
+  .bf-parts li span { font-weight: 700; color: #d97706; font-variant-numeric: tabular-nums; }
+  .bf-parts-more { color: #94a3b8 !important; padding-left: 1.6rem; }
+  .bf-foot-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .9rem; padding-top: .75rem; border-top: 1px solid #f1f5f9; }
+  .bf-meta { display: flex; align-items: center; gap: .4rem; font-size: .74rem; color: #94a3b8; }
+  .bf-meta-wrap { flex-wrap: wrap; margin-top: .75rem; row-gap: .25rem; }
+  .bf-meta i { margin-right: .2rem; }
+  .bf-dot { width: 3px; height: 3px; border-radius: 99px; background: #cbd5e1; }
+  .bf-go { font-size: .76rem; font-weight: 600; color: #d97706; display: inline-flex; align-items: center; gap: .3rem; transition: gap .2s; }
+  .bf-card:hover .bf-go { gap: .55rem; }
+  .bf-catbtn, .bf-tag { position: relative; z-index: 2; cursor: pointer; border: 0; }
+  .bf-catbtn { background: transparent; padding: 0; font-size: .74rem; color: #94a3b8; }
+  .bf-catbtn:hover { color: #d97706; }
+  .bf-tags { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .75rem; }
+  .bf-tag { font-size: .72rem; padding: .16rem .55rem; border-radius: 999px; background: #f1f5f9; color: #64748b; transition: all .15s; }
+  .bf-tag:hover { background: #fef3c7; color: #b45309; }
+  .bf-tag[aria-pressed="true"] { background: #f59e0b; color: #fff; }
+  .bf-title mark { background: #fde68a; color: inherit; border-radius: .2rem; padding: 0 .1rem; }
+
+  /* ---------- Tombol muat lebih, kosong ---------- */
+  .bf-more {
+    display: inline-flex; align-items: center; gap: .55rem; cursor: pointer; font-size: .88rem; font-weight: 600;
+    color: #b45309; background: #fff; border: 1px solid #fcd34d; border-radius: 999px; padding: .65rem 1.4rem; transition: all .2s;
+  }
+  .bf-more:hover { background: #fffbeb; box-shadow: 0 8px 20px -12px rgba(217, 119, 6, .6); }
+  .bf-empty { text-align: center; padding: 3rem 1rem; background: #fff; border: 1px dashed #e2e8f0; border-radius: 1.25rem; }
+  .bf-empty-icon { width: 3.5rem; height: 3.5rem; margin: 0 auto 1rem; border-radius: 1rem; background: #f8fafc; color: #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+  .bf-empty h3 { font-weight: 700; color: #334155; }
+  .bf-empty p { font-size: .88rem; color: #94a3b8; margin: .35rem 0 1.2rem; }
+  .bf-empty-tags { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .45rem; margin-top: 1.2rem; font-size: .8rem; color: #94a3b8; }
+
+  @media (max-width: 719px) {
+    .bf-row { flex-direction: column; align-items: stretch; gap: .4rem; }
+    .bf-row-split { flex-direction: row; align-items: center; }
+    .bf-kbd { display: none; }
+    .bf-segment button { padding: .38rem .6rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bf *, .bf *::before, .bf *::after { transition: none !important; } }
+</style>
+
+<script>
+  const root = document.querySelector('.bf');
+  if (root) {
+    const PAGE = Number(root.dataset.page) || 8;
+    const SERIES_PREVIEW = Number(root.dataset.seriesPreview) || 4;
+    const INCLUDE_SERIES = root.dataset.includeSeries === 'true';
+    const TOTAL_A = Number(root.dataset.totalArticles) || 0;
+    const TOTAL_S = Number(root.dataset.totalSeries) || 0;
+
+    const $ = (s) => root.querySelector(s);
+    const $$ = (s) => Array.from(root.querySelectorAll(s));
+    const el = {
+      finder: $('#finder'), q: $('#q'), clear: $('#q-clear'), status: $('#status'), reset: $('#reset'),
+      sort: $('#sort'), tagPanel: $('#tag-panel'), tagToggle: $('#tag-toggle'), tagCount: $('#tag-count'),
+      seriesSection: $('#series-section'), seriesGrid: $('#series-grid'), seriesCount: $('#series-count'),
+      seriesMore: $('#series-more'), seriesMoreLabel: $('#series-more-label'),
+      articlesSection: $('#articles-section'), articlesGrid: $('#articles-grid'),
+      articlesTitle: $('#articles-title'), articlesSub: $('#articles-sub'),
+      more: $('#more'), moreLabel: $('#more-label'), empty: $('#empty'), emptyQuery: $('#empty-query'),
+    };
+    const seriesCards = $$('#series-grid > [data-card]');
+    const articleCards = $$('#articles-grid > [data-card]');
+
+    const norm = (s) =>
+      (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+    const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const knownTopics = new Set($$('[data-topic-chip]').map((b) => b.dataset.topicChip));
+    const knownTags = new Set($$('[data-tag-toggle]').map((b) => b.dataset.tagToggle));
+
+    const state = { q: '', topic: '', type: 'semua', tags: [], sort: 'terbaru', shown: PAGE, allSeries: false };
+    let terms = [];
+
+    // ---------- URL <-> state ----------
+    function readURL() {
+      const p = new URLSearchParams(location.search);
+      state.q = (p.get('q') || '').slice(0, 120);
+      const topic = norm(p.get('topik') || '');
+      state.topic = knownTopics.has(topic) ? topic : '';
+      const jenis = p.get('jenis');
+      state.type = jenis === 'seri' || jenis === 'lepas' ? jenis : 'semua';
+      state.tags = (p.get('tag') || '').split(',').map(norm).filter((t) => knownTags.has(t));
+      const urut = p.get('urut');
+      state.sort = urut === 'terlama' || urut === 'judul' ? urut : 'terbaru';
+    }
+    function writeURL() {
+      const p = new URLSearchParams();
+      if (state.q) p.set('q', state.q);
+      if (state.topic) p.set('topik', state.topic);
+      if (state.type !== 'semua') p.set('jenis', state.type);
+      if (state.tags.length) p.set('tag', state.tags.join(','));
+      if (state.sort !== 'terbaru') p.set('urut', state.sort);
+      const qs = p.toString();
+      history.replaceState(null, '', location.pathname + (qs ? '?' + qs : ''));
+    }
+
+    // ---------- pencocokan ----------
+    function matches(card) {
+      const s = card.dataset.s || '';
+      for (const t of terms) if (!s.includes(t)) return false;
+      if (state.topic && !(card.dataset.topic || '').split('|').includes(state.topic)) return false;
+      if (state.tags.length) {
+        const ct = (card.dataset.tags || '').split('|');
+        for (const g of state.tags) if (!ct.includes(g)) return false;
+      }
+      return true;
+    }
+
+    // ---------- sorotan kata kunci pada judul ----------
+    function paintTitle(card, hits) {
+      const a = card.querySelector('[data-title-text]');
+      if (!a) return;
+      const raw = a.dataset.raw || '';
+      if (!hits.length) {
+        if (a.textContent !== raw) a.textContent = raw;
+        return;
+      }
+      const re = new RegExp('(' + hits.map(escapeRe).join('|') + ')', 'gi');
+      const frag = document.createDocumentFragment();
+      raw.split(re).forEach((part, i) => {
+        if (!part) return;
+        if (i % 2 === 1) {
+          const m = document.createElement('mark');
+          m.textContent = part;
+          frag.appendChild(m);
+        } else frag.appendChild(document.createTextNode(part));
+      });
+      a.replaceChildren(frag);
+    }
+
+    const sorters = {
+      terbaru: (a, b) => Number(b.dataset.date) - Number(a.dataset.date),
+      terlama: (a, b) => Number(a.dataset.date) - Number(b.dataset.date),
+      judul: (a, b) => (a.dataset.name || '').localeCompare(b.dataset.name || '', 'id'),
+    };
+    const seriesSorters = {
+      terbaru: sorters.terbaru,
+      terlama: (a, b) => Number(a.dataset.first) - Number(b.dataset.first),
+      judul: sorters.judul,
+    };
+
+    // ---------- render ----------
+    function apply(opts) {
+      if (!opts || opts.reset !== false) state.shown = PAGE;
+      terms = norm(state.q).split(' ').filter(Boolean);
+      const filtering = terms.length > 0 || !!state.topic || state.tags.length > 0;
+      const browse = !filtering && state.type === 'semua';
+
+      // Seri
+      const sSorted = seriesCards.slice().sort(seriesSorters[state.sort]);
+      sSorted.forEach((c) => el.seriesGrid.appendChild(c));
+      const seriesLimit = browse && !state.allSeries ? SERIES_PREVIEW : Infinity;
+      let sVisible = 0;
+      let sShown = 0;
+      sSorted.forEach((c) => {
+        const ok = state.type !== 'lepas' && matches(c);
+        if (ok) {
+          sVisible++;
+          c.hidden = sShown >= seriesLimit;
+          if (!c.hidden) sShown++;
+        } else c.hidden = true;
+        paintTitle(c, ok && !c.hidden ? terms : []);
+      });
+      el.seriesMore.hidden = !(browse && sVisible > SERIES_PREVIEW);
+      el.seriesMoreLabel.textContent = state.allSeries ? 'Ringkas daftar seri' : 'Tampilkan semua seri (' + sVisible + ')';
+
+      // Artikel
+      const aSorted = articleCards.slice().sort(sorters[state.sort]);
+      aSorted.forEach((c) => el.articlesGrid.appendChild(c));
+      let matched = 0;
+      aSorted.forEach((c) => {
+        let ok = matches(c);
+        if (ok && state.type === 'seri' && c.dataset.type !== 'seri') ok = false;
+        if (ok && state.type === 'lepas' && c.dataset.type !== 'lepas') ok = false;
+        if (ok && browse && !INCLUDE_SERIES && c.dataset.type === 'seri') ok = false;
+        if (ok) {
+          matched++;
+          c.hidden = matched > state.shown;
+        } else c.hidden = true;
+        paintTitle(c, ok ? terms : []);
+      });
+
+      el.seriesSection.hidden = sVisible === 0;
+      el.articlesSection.hidden = matched === 0;
+      el.empty.hidden = !(matched === 0 && sVisible === 0);
+      el.seriesCount.textContent = filtering || state.type !== 'semua' ? '· ' + sVisible + ' cocok' : '';
+
+      el.articlesTitle.textContent = filtering
+        ? 'Hasil Penelusuran'
+        : state.sort === 'terbaru' ? 'Artikel Terbaru' : 'Semua Artikel';
+      el.articlesSub.textContent = 'Menampilkan ' + Math.min(matched, state.shown) + ' dari ' + matched + ' artikel';
+
+      const remaining = matched - state.shown;
+      el.more.hidden = remaining <= 0;
+      if (remaining > 0) el.moreLabel.textContent = 'Tampilkan ' + Math.min(PAGE, remaining) + ' artikel lagi (' + remaining + ' tersisa)';
+
+      const active = filtering || state.type !== 'semua';
+      el.status.textContent = active
+        ? 'Ditemukan ' + matched + ' artikel' + (sVisible ? ' dan ' + sVisible + ' seri' : '') + '.'
+        : TOTAL_A + ' artikel dalam ' + TOTAL_S + ' seri dan tulisan lepas.';
+      el.emptyQuery.textContent = state.q ? 'untuk \u201C' + state.q + '\u201D' : '';
+
+      // sinkronkan kontrol
+      if (el.q.value !== state.q) el.q.value = state.q;
+      el.clear.hidden = !state.q;
+      $$('[data-topic-chip]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.topicChip === state.topic)));
+      $$('[data-type-set]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.typeSet === state.type)));
+      $$('[data-tag-toggle]').forEach((b) => b.setAttribute('aria-pressed', String(state.tags.includes(b.dataset.tagToggle))));
+      el.sort.value = state.sort;
+      el.tagCount.textContent = String(state.tags.length);
+      el.tagCount.hidden = state.tags.length === 0;
+      el.reset.hidden = !(active || state.sort !== 'terbaru');
+      writeURL();
+    }
+
+    function resetAll() {
+      state.q = ''; state.topic = ''; state.type = 'semua'; state.tags = []; state.sort = 'terbaru'; state.allSeries = false;
+      apply();
+    }
+    function toFinder() {
+      el.finder.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+
+    // ---------- interaksi ----------
+    root.addEventListener('click', (e) => {
+      const b = e.target.closest('button');
+      if (!b || !root.contains(b)) return;
+      const fromCard = !!b.closest('[data-card]');
+
+      if ('topicChip' in b.dataset) { state.topic = b.dataset.topicChip; return apply(); }
+      if ('topicSet' in b.dataset) {
+        state.topic = state.topic === b.dataset.topicSet ? '' : b.dataset.topicSet;
+        apply(); if (fromCard) toFinder(); return;
+      }
+      if ('tagToggle' in b.dataset) {
+        const k = b.dataset.tagToggle;
+        state.tags = state.tags.includes(k) ? state.tags.filter((t) => t !== k) : state.tags.concat(k);
+        apply(); if (fromCard || b.closest('#empty')) toFinder(); return;
+      }
+      if ('typeSet' in b.dataset) { state.type = b.dataset.typeSet; return apply(); }
+
+      switch (b.id) {
+        case 'reset':
+        case 'reset-empty': resetAll(); break;
+        case 'more': state.shown += PAGE; apply({ reset: false }); break;
+        case 'series-more': state.allSeries = !state.allSeries; apply({ reset: false }); break;
+        case 'q-clear': state.q = ''; el.q.focus(); apply(); break;
+        case 'tag-toggle': {
+          const open = el.tagToggle.getAttribute('aria-expanded') !== 'true';
+          el.tagToggle.setAttribute('aria-expanded', String(open));
+          el.tagPanel.hidden = !open;
+          break;
+        }
+      }
+    });
+
+    let timer;
+    el.q.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => { state.q = el.q.value.trim().slice(0, 120); apply(); }, 120);
+    });
+    el.q.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (el.q.value) { el.q.value = ''; state.q = ''; apply(); } else el.q.blur();
+      }
+    });
+    el.sort.addEventListener('change', () => { state.sort = el.sort.value; apply(); });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      e.preventDefault();
+      el.q.focus();
+      el.q.select();
+    });
+
+    // ---------- mulai ----------
+    readURL();
+    el.q.value = state.q;
+    if (state.tags.length) { el.tagPanel.hidden = false; el.tagToggle.setAttribute('aria-expanded', 'true'); }
+    el.finder.hidden = false;
+    apply();
+  }
+</script>
