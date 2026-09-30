@@ -1,25 +1,306 @@
 ---
 // src/components/Footer.astro
-// Footer global
+// Footer global: dipakai semua halaman lewat BaseLayout.
+// Daftar seri dan tulisan terbaru dibaca otomatis dari koleksi blog,
+// sehingga footer ikut diperbarui setiap ada artikel baru tanpa disunting manual.
+import { getCollection } from 'astro:content';
+
+const posts = (await getCollection('blog')).sort(
+  (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf() || b.id.localeCompare(a.id)
+);
+
+// Pembuat slug yang sama dengan halaman /blog dan /blog/series/
+const toSlug = (name: string) =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+const seriesCount = new Map<string, number>();
+for (const p of posts) {
+  if (p.data.series) seriesCount.set(p.data.series, (seriesCount.get(p.data.series) ?? 0) + 1);
+}
+const series = [...seriesCount.entries()].sort((a, b) => a[0].localeCompare(b[0], 'id'));
+const latest = posts.slice(0, 3);
+const year = new Date().getFullYear();
+
+const waNumber = '6282160052217';
+const waText = encodeURIComponent("Assalamu'alaikum, saya ingin berkonsultasi.");
+
+const navLinks = [
+  { href: '/', label: 'Beranda' },
+  { href: '/#profil', label: 'Profil' },
+  { href: '/#akademis', label: 'Akademis' },
+  { href: '/#layanan', label: 'Layanan Jasa' },
+  { href: '/blog', label: 'Blog' },
+  { href: '/#kontak', label: 'Kontak' },
+];
 ---
 
-<footer class="bg-slate-50 pt-20 pb-10 border-t border-gray-200">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-      <p class="text-slate-500 text-sm">
-        &copy; 2026 Rizky Rinaldi, S.Kom., M.Kom. Semua hak cipta dilindungi undang-undang.
-      </p>
-      <div class="flex space-x-4">
+<footer class="relative overflow-hidden bg-dark text-slate-300" aria-labelledby="footer-heading">
+  <h2 id="footer-heading" class="sr-only">Footer</h2>
+
+  <!-- Garis aksen emas dan cahaya lembut -->
+  <div class="h-1 bg-gradient-to-r from-gold-400 via-gold-500 to-gold-700" aria-hidden="true"></div>
+  <div
+    class="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full bg-gold-500/10 blur-3xl"
+    aria-hidden="true"
+  ></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+    <div class="grid gap-12 sm:grid-cols-2 lg:grid-cols-12">
+      <!-- Merek -->
+      <div class="sm:order-1 sm:col-span-2 lg:order-none lg:col-span-4">
+        <a href="/" class="inline-flex items-center gap-3" aria-label="Rizky Rinaldi, kembali ke beranda">
+          <span
+            class="flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/15 text-gold-400 ring-1 ring-gold-500/30"
+            aria-hidden="true"
+          >
+            <i class="fa-solid fa-graduation-cap text-lg"></i>
+          </span>
+          <span class="text-2xl font-bold tracking-tight text-white">
+            Rizky<span class="text-gold-500">Rinaldi.</span>
+          </span>
+        </a>
+        <p class="mt-5 max-w-sm text-sm leading-relaxed text-slate-400">
+          Dosen STAI Raudhatul Akmal, peneliti teknologi pendidikan, dan praktisi IT. Melayani
+          pembuatan website serta pendampingan kepenulisan dan publikasi jurnal ilmiah.
+        </p>
+
+        <ul class="mt-6 flex flex-wrap gap-2" aria-label="Bidang keahlian">
+          {
+            ['Teknologi Pendidikan', 'Pembuatan Website', 'Publikasi Jurnal'].map((tag) => (
+              <li class="rounded-full border border-slate-700 bg-slate-800/60 px-3 py-1 text-xs text-slate-300">
+                {tag}
+              </li>
+            ))
+          }
+        </ul>
+
+        <ul class="mt-6 flex flex-wrap gap-3" aria-label="Tautan sosial dan kontak">
+          <li>
+            <a
+              href={`https://wa.me/${waNumber}?text=${waText}`}
+              target="_blank"
+              rel="noopener"
+              aria-label="Hubungi lewat WhatsApp"
+              class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 text-slate-300 transition hover:border-gold-500 hover:bg-gold-500/10 hover:text-gold-400"
+            >
+              <i class="fa-brands fa-whatsapp text-lg"></i>
+            </a>
+          </li>
+          <li>
+            <a
+              href="mailto:rizkyrinaldi.staira@gmail.com"
+              aria-label="Kirim email"
+              class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 text-slate-300 transition hover:border-gold-500 hover:bg-gold-500/10 hover:text-gold-400"
+            >
+              <i class="fa-solid fa-envelope"></i>
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://scholar.google.com/citations?user=RHoZrJ4AAAAJ"
+              target="_blank"
+              rel="noopener"
+              aria-label="Profil Google Scholar"
+              class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 text-slate-300 transition hover:border-gold-500 hover:bg-gold-500/10 hover:text-gold-400"
+            >
+              <i class="fa-brands fa-google"></i>
+            </a>
+          </li>
+          <li>
+            <a
+              href="/rss.xml"
+              aria-label="Langganan RSS blog"
+              class="flex h-10 w-10 items-center justify-center rounded-full border border-slate-700 text-slate-300 transition hover:border-gold-500 hover:bg-gold-500/10 hover:text-gold-400"
+            >
+              <i class="fa-solid fa-rss"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Jelajahi -->
+      <nav class="sm:order-2 lg:order-none lg:col-span-2" aria-label="Navigasi footer">
+        <h3 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-white">
+          <span class="h-4 w-1 rounded-full bg-gold-500" aria-hidden="true"></span>
+          Jelajahi
+        </h3>
+        <ul class="mt-5 grid grid-cols-2 gap-x-4 gap-y-3 lg:grid-cols-1">
+          {
+            navLinks.map((l) => (
+              <li>
+                <a
+                  href={l.href}
+                  class="group inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-gold-400"
+                >
+                  <i
+                    class="fa-solid fa-chevron-right text-[9px] text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-gold-500"
+                    aria-hidden="true"
+                  />
+                  {l.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+
+      <!-- Belajar dan tulisan terbaru -->
+      <div class="sm:order-4 sm:col-span-2 lg:order-none lg:col-span-3">
+        <h3 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-white">
+          <span class="h-4 w-1 rounded-full bg-gold-500" aria-hidden="true"></span>
+          Belajar
+        </h3>
+
+        {
+          series.length > 0 && (
+            <>
+              <p class="mt-5 text-xs font-medium uppercase tracking-wider text-slate-500">
+                Seri pembelajaran
+              </p>
+              <ul class="mt-3 space-y-3">
+                {series.map(([name, count]) => (
+                  <li>
+                    <a
+                      href={`/blog/series/${toSlug(name)}`}
+                      class="group flex items-start gap-3 text-sm text-slate-300 transition hover:text-gold-400"
+                    >
+                      <span
+                        class="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 text-gold-500 transition group-hover:bg-gold-500/15"
+                        aria-hidden="true"
+                      >
+                        <i class="fa-solid fa-layer-group text-xs" />
+                      </span>
+                      <span class="leading-snug">
+                        {name}
+                        <span class="block text-xs text-slate-500">{count} artikel</span>
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )
+        }
+
+        {
+          latest.length > 0 && (
+            <>
+              <p class="mt-7 text-xs font-medium uppercase tracking-wider text-slate-500">
+                Tulisan terbaru
+              </p>
+              <ul class="mt-3 space-y-3">
+                {latest.map((p) => (
+                  <li>
+                    <a
+                      href={`/blog/${p.id}`}
+                      class="line-clamp-2 text-sm leading-snug text-slate-400 transition hover:text-gold-400"
+                    >
+                      {p.data.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )
+        }
+
         <a
-          href="https://scholar.google.com/citations?user=RHoZrJ4AAAAJ"
-          target="_blank"
-          rel="noopener"
-          class="text-gray-400 hover:text-gold-600 transition text-xl"
-          aria-label="Profil Google Scholar"
+          href="/blog"
+          class="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-gold-500 transition hover:text-gold-400"
         >
-          <i class="fa-brands fa-google"></i>
+          Semua tulisan
+          <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
         </a>
       </div>
+
+      <!-- Hubungi -->
+      <div class="sm:order-3 lg:order-none lg:col-span-3">
+        <h3 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-white">
+          <span class="h-4 w-1 rounded-full bg-gold-500" aria-hidden="true"></span>
+          Hubungi
+        </h3>
+        <ul class="mt-5 space-y-4 text-sm">
+          <li class="flex items-start gap-3">
+            <span
+              class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 text-gold-500"
+              aria-hidden="true"
+            >
+              <i class="fa-brands fa-whatsapp"></i>
+            </span>
+            <span>
+              <span class="block text-xs text-slate-500">WhatsApp</span>
+              <a
+                href={`https://wa.me/${waNumber}?text=${waText}`}
+                target="_blank"
+                rel="noopener"
+                class="text-slate-300 transition hover:text-gold-400"
+              >
+                0821-6005-2217
+              </a>
+            </span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span
+              class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 text-gold-500"
+              aria-hidden="true"
+            >
+              <i class="fa-solid fa-envelope"></i>
+            </span>
+            <span class="min-w-0">
+              <span class="block text-xs text-slate-500">Email</span>
+              <a
+                href="mailto:rizkyrinaldi.staira@gmail.com"
+                class="break-words text-slate-300 transition hover:text-gold-400"
+              >
+                rizkyrinaldi.staira@gmail.com
+              </a>
+            </span>
+          </li>
+          <li class="flex items-start gap-3">
+            <span
+              class="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 text-gold-500"
+              aria-hidden="true"
+            >
+              <i class="fa-solid fa-location-dot"></i>
+            </span>
+            <span>
+              <span class="block text-xs text-slate-500">Lokasi</span>
+              <span class="text-slate-300">Batang Kuis, Deli Serdang, Sumatera Utara</span>
+            </span>
+          </li>
+        </ul>
+
+        <a
+          href={`https://wa.me/${waNumber}?text=${waText}`}
+          target="_blank"
+          rel="noopener"
+          class="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-gold-500 to-gold-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:shadow-lg hover:shadow-gold-500/30"
+        >
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          Konsultasi via WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- Baris bawah -->
+    <div
+      class="mt-14 flex flex-col-reverse items-center justify-between gap-4 border-t border-slate-800 pt-6 text-center text-sm text-slate-500 md:flex-row md:text-left"
+    >
+      <p>
+        &copy; {year} Rizky Rinaldi, S.Kom., M.Kom. Semua hak cipta dilindungi undang-undang.
+      </p>
+      <a
+        href="#top"
+        class="group inline-flex items-center gap-2 text-slate-400 transition hover:text-gold-400"
+      >
+        Kembali ke atas
+        <span
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 transition group-hover:border-gold-500 group-hover:bg-gold-500/10"
+          aria-hidden="true"
+        >
+          <i class="fa-solid fa-arrow-up text-xs"></i>
+        </span>
+      </a>
     </div>
   </div>
 </footer>
