@@ -5,13 +5,14 @@ import { scrollableTables } from './src/plugins/satteri-scrollable-tables.mjs';
 import { copyFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
-// Astro hanya membuat /sitemap-index.xml. Alamat /sitemap.xml paling sering dimasukkan ke Search Console,
-// jadi setiap build disalin agar kedua alamat berfungsi (isinya identik).
+// Astro hanya membuat /sitemap-index.xml (indeks) dan /sitemap-0.xml (daftar URL). Untuk situs sekecil ini
+// /sitemap.xml dibuat berisi langsung daftar URL (salinan sitemap-0.xml), tanpa lapisan indeks: itu alamat yang
+// paling sering dikirim ke Search Console, dan Search Console langsung melaporkan jumlah halamannya.
 const sitemapAlias = () => ({
   name: 'sitemap-alias',
   hooks: {
     'astro:build:done': async ({ dir }) => {
-      await copyFile(fileURLToPath(new URL('sitemap-index.xml', dir)), fileURLToPath(new URL('sitemap.xml', dir)));
+      await copyFile(fileURLToPath(new URL('sitemap-0.xml', dir)), fileURLToPath(new URL('sitemap.xml', dir)));
     },
   },
 });
