@@ -17,9 +17,17 @@ const {
   title = SITE_TITLE,
   description = SITE_DESCRIPTION,
   ogImage = 'https://ui-avatars.com/api/?name=Rizky+Rinaldi&size=400&background=D97706&color=fff&bold=true',
-  canonical = 'https://rizkyrinaldi.my.id',
+  canonical,
   pageType = 'website',
 } = Astro.props;
+
+// Canonical selalu berupa alamat halaman itu sendiri dan berakhiran "/", persis seperti di sitemap.
+// (GitHub Pages mengalihkan alamat tanpa "/" ke yang berakhiran "/", jadi canonical tanpa "/" menunjuk ke redirect.)
+const canonicalUrl = new URL(canonical ?? Astro.url.pathname, Astro.site ?? 'https://rizkyrinaldi.my.id');
+if (!canonicalUrl.pathname.endsWith('/') && !/\.[a-z0-9]+$/i.test(canonicalUrl.pathname)) canonicalUrl.pathname += '/';
+canonicalUrl.search = '';
+canonicalUrl.hash = '';
+const canonicalHref = canonicalUrl.href;
 ---
 
 <!DOCTYPE html>
@@ -40,7 +48,7 @@ const {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={ogImage} />
-    <meta property="og:url" content={canonical} />
+    <meta property="og:url" content={canonicalHref} />
     <meta property="og:site_name" content="Portfolio & Layanan Rizky Rinaldi" />
 
     <!-- Twitter Card -->
@@ -50,7 +58,7 @@ const {
     <meta name="twitter:image" content={ogImage} />
 
     <!-- Canonical -->
-    <link rel="canonical" href={canonical} />
+    <link rel="canonical" href={canonicalHref} />
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

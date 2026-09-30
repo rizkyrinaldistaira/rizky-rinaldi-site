@@ -192,7 +192,7 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Blog',
   name: `Blog & Pembelajaran | ${SITE_TITLE}`,
-  url: `${SITE_URL}/blog`,
+  url: `${SITE_URL}/blog/`,
   inLanguage: 'id',
   author: { '@type': 'Person', name: 'Rizky Rinaldi, S.Kom., M.Kom.', url: SITE_URL },
   blogPost: items.slice(0, 10).map((i) => ({
@@ -200,7 +200,7 @@ const jsonLd = {
     headline: i.title,
     description: i.description,
     datePublished: i.date.toISOString(),
-    url: `${SITE_URL}/blog/${i.id}`,
+    url: `${SITE_URL}/blog/${i.id}/`,
     keywords: i.tags.join(', '),
   })),
 };
@@ -209,7 +209,7 @@ const jsonLd = {
 <BaseLayout
   title={`Blog & Pembelajaran | ${SITE_TITLE}`}
   description="Kumpulan artikel, panduan praktis, dan seri pembelajaran seputar teknologi informasi, metodologi penelitian, dan penyusunan skripsi oleh Rizky Rinaldi."
-  canonical={`${SITE_URL}/blog`}
+  canonical={`${SITE_URL}/blog/`}
   pageType="website"
 >
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} slot="head" />

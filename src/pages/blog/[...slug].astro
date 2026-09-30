@@ -19,7 +19,7 @@ const { Content } = await render(post);
 const title = post.data.title || 'Blog Post';
 const description = post.data.description || '';
 const ogImage = '/myfoto.jpg';
-const canonical = `${SITE_URL}/blog/${post.id}`;
+const canonical = `${SITE_URL}/blog/${post.id}/`;
 
 // Cari artikel seri (prev/next)
 let prevPost: CollectionEntry<'blog'> | null = null;

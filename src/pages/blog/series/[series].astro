@@ -41,7 +41,7 @@ const jsonLd = {
     '@type': 'CourseInstance',
     name: p.data.title,
     description: p.data.description,
-    url: `${SITE_URL}/blog/${p.id}`,
+    url: `${SITE_URL}/blog/${p.id}/`,
   })),
 };
 ---
@@ -49,7 +49,7 @@ const jsonLd = {
 <BaseLayout
   title={`${seriesName} | ${SITE_TITLE}`}
   description={description}
-  canonical={`${SITE_URL}/blog/series/${seriesSlug}`}
+  canonical={`${SITE_URL}/blog/series/${seriesSlug}/`}
   pageType="website"
 >
   <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} slot="head" />
