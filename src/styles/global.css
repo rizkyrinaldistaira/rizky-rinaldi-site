@@ -171,3 +171,323 @@
 .prose a {
   overflow-wrap: anywhere;
 }
+
+/* ==========================================================
+   Tools (halaman /tools): komponen antarmuka bersama
+   Ditulis di luar @layer agar tidak dibuang Tailwind.
+   ========================================================== */
+.tl-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 32px -22px rgba(180, 83, 9, 0.3);
+  padding: 1.25rem;
+}
+@media (min-width: 640px) {
+  .tl-card {
+    padding: 1.75rem;
+  }
+}
+.tl-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  text-align: center;
+  cursor: pointer;
+  border: 2px dashed #fcd34d;
+  background: #fffbeb;
+  border-radius: 0.875rem;
+  padding: 2rem 1rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+.tl-drop:hover,
+.tl-drop:focus-visible,
+.tl-drop.is-drag {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  outline: none;
+}
+.tl-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.65rem 1.4rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #fff;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  transition: box-shadow 0.15s, transform 0.05s, opacity 0.15s;
+}
+.tl-btn:hover:not(:disabled) {
+  box-shadow: 0 8px 20px -8px rgba(217, 119, 6, 0.6);
+}
+.tl-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.tl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tl-btn:focus-visible,
+.tl-ghost:focus-visible,
+.tl-icon:focus-visible,
+.tl-key:focus-visible,
+.tl-input:focus-visible,
+.tl-chip:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+.tl-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  border-radius: 999px;
+  padding: 0.55rem 1.1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #92400e;
+  background: #fff;
+  border: 1px solid #fcd34d;
+  transition: background 0.15s;
+}
+.tl-ghost:hover:not(:disabled) {
+  background: #fffbeb;
+}
+.tl-ghost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tl-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tl-icon:hover:not(:disabled) {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+.tl-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.tl-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.95rem;
+  color: #0f172a;
+}
+.tl-input:focus {
+  border-color: #f59e0b;
+}
+.tl-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.3rem;
+}
+.tl-chip {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.tl-chip:hover {
+  border-color: #fcd34d;
+}
+.tl-chip.is-on {
+  background: #fffbeb;
+  border-color: #f59e0b;
+  color: #92400e;
+}
+.tl-status {
+  border-radius: 0.75rem;
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+.tl-status-info {
+  background: #eff6ff;
+  color: #1e40af;
+}
+.tl-status-error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+.tl-status-success {
+  background: #f0fdf4;
+  color: #166534;
+}
+.tl-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.75rem;
+}
+.tl-row.is-dragging {
+  opacity: 0.4;
+}
+.tl-row[draggable='true'] {
+  cursor: grab;
+}
+.tl-key {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  border-radius: 0.65rem;
+  padding: 0.7rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-width: 0;
+}
+.tl-key:hover {
+  background: #f8fafc;
+}
+.tl-key:active {
+  background: #f1f5f9;
+}
+.tl-key-fn {
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+}
+.tl-key-op {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+.tl-key-eq {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  color: #fff;
+  border-color: transparent;
+}
+.tl-page {
+  position: relative;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.tl-page:hover {
+  border-color: #fcd34d;
+}
+.tl-page.is-selected {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+}
+.tl-page.is-dragging {
+  opacity: 0.4;
+}
+.tl-page .tl-box {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background: #f1f5f9;
+  border-radius: 0.35rem;
+  overflow: hidden;
+}
+.tl-page .tl-box canvas {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  background: #fff;
+}
+.tl-page .tl-thumb-ph {
+  position: absolute;
+  inset: 0;
+  background: #e2e8f0;
+}
+.tl-card input[type='range'],
+.tl-card input[type='checkbox'],
+.tl-card input[type='radio'] {
+  accent-color: #f59e0b;
+}
+
+/* Tabel hasil di dalam tools (tidak bergantung pada .prose) */
+.tl-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 24px -18px rgba(180, 83, 9, 0.35);
+}
+.tl-table-wrap:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+.tl-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.tl-table thead th {
+  background: linear-gradient(180deg, #fffbeb, #fef3c7);
+  border-bottom: 2px solid #f59e0b;
+  color: #78350f;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.7rem 0.9rem;
+  white-space: nowrap;
+}
+.tl-table td {
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  white-space: nowrap;
+}
+.tl-table tbody tr:nth-child(even) td {
+  background: #f8fafc;
+}
+.tl-table tbody tr:hover td {
+  background: #fffbeb;
+}
+.tl-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+details.tl-faq > summary {
+  cursor: pointer;
+  list-style: none;
+}
+details.tl-faq > summary::-webkit-details-marker {
+  display: none;
+}
+details.tl-faq[open] > summary i {
+  transform: rotate(180deg);
+}

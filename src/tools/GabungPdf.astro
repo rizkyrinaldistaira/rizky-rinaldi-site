@@ -1,0 +1,24 @@
+---
+// Markup tool Gabung PDF. Logika: src/scripts/tools/gabung-pdf.ts
+---
+
+<div id="gp">
+  <div class="tl-drop" id="gp-drop" tabindex="0" role="button" aria-label="Pilih file PDF untuk digabung">
+    <i class="fa-solid fa-file-pdf text-3xl text-gold-600" aria-hidden="true"></i>
+    <p class="font-semibold text-slate-700">Tarik file PDF ke sini atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">Bisa memilih beberapa file sekaligus</p>
+    <input type="file" class="hidden" id="gp-file" />
+  </div>
+  <div id="gp-status" class="hidden mt-4"></div>
+  <div id="gp-list" class="mt-5 space-y-2" aria-live="polite"></div>
+  <div id="gp-actions" class="hidden mt-5 flex flex-wrap items-center gap-3">
+    <button type="button" id="gp-merge" class="tl-btn"><i class="fa-solid fa-object-group" aria-hidden="true"></i> Gabungkan PDF</button>
+    <button type="button" id="gp-clear" class="tl-ghost">Hapus semua</button>
+    <span id="gp-summary" class="text-sm text-slate-500"></span>
+  </div>
+  <div id="gp-result" class="hidden mt-5"></div>
+</div>
+
+<script>
+  import '../scripts/tools/gabung-pdf.ts';
+</script>

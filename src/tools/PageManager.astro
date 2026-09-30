@@ -1,0 +1,76 @@
+---
+// Pengelola halaman PDF. Satu komponen untuk tiga tool: pisah, hapus, atur (putar dan susun).
+// Logika: src/scripts/tools/page-manager.ts
+export interface Props {
+  mode: 'pisah' | 'hapus' | 'atur';
+}
+const { mode } = Astro.props;
+---
+
+<div id="pm" data-mode={mode}>
+  <div class="tl-drop" id="pm-drop" tabindex="0" role="button" aria-label="Pilih file PDF">
+    <i class="fa-solid fa-file-pdf text-3xl text-gold-600" aria-hidden="true"></i>
+    <p class="font-semibold text-slate-700">Tarik satu file PDF ke sini atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">Halaman ditampilkan sebagai gambar pratinjau</p>
+    <input type="file" class="hidden" id="pm-file" />
+  </div>
+  <div id="pm-status" class="hidden mt-4"></div>
+
+  <div id="pm-work" class="hidden mt-5">
+    <p id="pm-info" class="text-sm text-slate-600 mb-3"></p>
+
+    <div class="flex flex-wrap items-center gap-2 mb-3">
+      <button type="button" id="pm-all" class="tl-ghost">Pilih semua</button>
+      <button type="button" id="pm-none" class="tl-ghost">Kosongkan</button>
+      <button type="button" id="pm-invert" class="tl-ghost">Balik pilihan</button>
+      <div class="flex items-center gap-2 sm:ml-auto">
+        <label for="pm-range" class="sr-only">Rentang halaman</label>
+        <input id="pm-range" type="text" class="tl-input" style="width:9.5rem" placeholder="mis. 1-3, 5" />
+        <button type="button" id="pm-range-btn" class="tl-ghost">Pilih</button>
+      </div>
+    </div>
+
+    {
+      mode !== 'pisah' && (
+        <div class="flex flex-wrap items-center gap-2 mb-4">
+          {mode === 'atur' && (
+            <>
+              <button type="button" id="pm-rotl" class="tl-ghost" aria-label="Putar halaman terpilih ke kiri"><i class="fa-solid fa-rotate-left" aria-hidden="true" /> Putar kiri</button>
+              <button type="button" id="pm-rotr" class="tl-ghost" aria-label="Putar halaman terpilih ke kanan"><i class="fa-solid fa-rotate-right" aria-hidden="true" /> Putar kanan</button>
+            </>
+          )}
+          <button type="button" id="pm-del" class="tl-ghost"><i class="fa-solid fa-trash-can" aria-hidden="true" /> Hapus halaman terpilih</button>
+          <button type="button" id="pm-reset" class="tl-ghost">Kembalikan semua</button>
+        </div>
+      )
+    }
+
+    <div id="pm-grid" class="grid gap-3" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))" aria-label="Halaman PDF"></div>
+
+    <div class="mt-6 space-y-4">
+      {
+        mode === 'pisah' && (
+          <>
+            <div class="flex flex-wrap items-center gap-3">
+              <button type="button" id="pm-extract" class="tl-btn"><i class="fa-solid fa-file-export" aria-hidden="true" /> Ambil halaman terpilih (1 PDF)</button>
+              <button type="button" id="pm-zip-each" class="tl-ghost"><i class="fa-solid fa-file-zipper" aria-hidden="true" /> Bagi per halaman (ZIP)</button>
+            </div>
+            <div class="flex flex-wrap items-end gap-3">
+              <div class="grow" style="min-width:12rem;max-width:22rem">
+                <label for="pm-parts" class="tl-label">Bagi menurut rentang (pisahkan dengan titik koma)</label>
+                <input id="pm-parts" type="text" class="tl-input" placeholder="mis. 1-3; 4-6; 7-10" />
+              </div>
+              <button type="button" id="pm-zip-parts" class="tl-ghost"><i class="fa-solid fa-file-zipper" aria-hidden="true" /> Bagi menurut rentang (ZIP)</button>
+            </div>
+          </>
+        )
+      }
+      {mode !== 'pisah' && <button type="button" id="pm-save" class="tl-btn"><i class="fa-solid fa-floppy-disk" aria-hidden="true" /> Simpan PDF</button>}
+    </div>
+  </div>
+  <div id="pm-result" class="hidden mt-5"></div>
+</div>
+
+<script>
+  import '../scripts/tools/page-manager.ts';
+</script>

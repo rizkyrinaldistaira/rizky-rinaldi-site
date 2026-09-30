@@ -1,0 +1,68 @@
+---
+// Markup Kalkulator IPK dan IPS. Logika: src/scripts/tools/kalkulator-ipk.ts, rumus: formulas.ts
+---
+
+<div id="ik" class="space-y-10">
+  <!-- Skala nilai -->
+  <section aria-labelledby="ik-h-skala">
+    <h2 id="ik-h-skala" class="mb-3 text-lg font-bold text-slate-800">1. Skala nilai kampus</h2>
+    <div class="flex flex-wrap items-end gap-4">
+      <div style="min-width:16rem">
+        <label class="tl-label" for="ik-scale">Pilih skala</label>
+        <select id="ik-scale" class="tl-input">
+          <option value="p2">A, A-, B+, B, B-, C+, C, D, E</option>
+          <option value="p1">A, B+, B, C+, C, D, E</option>
+          <option value="p3">A, B, C, D, E</option>
+        </select>
+      </div>
+    </div>
+    <details class="mt-3">
+      <summary class="cursor-pointer text-sm font-semibold text-gold-700">Ubah bobot nilai</summary>
+      <div id="ik-scale-edit" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5"></div>
+    </details>
+    <p class="mt-2 text-xs text-slate-500">Skala dan bobot berbeda antarkampus. Sesuaikan dengan pedoman akademik kampus Anda.</p>
+  </section>
+
+  <!-- IPS -->
+  <section aria-labelledby="ik-h-ips">
+    <h2 id="ik-h-ips" class="mb-3 text-lg font-bold text-slate-800">2. Hitung IPS satu semester</h2>
+    <div class="hidden grid-cols-12 gap-3 px-1 text-xs font-semibold text-slate-500 sm:grid">
+      <span class="col-span-6">Mata kuliah (opsional)</span><span class="col-span-2">SKS</span><span class="col-span-3">Nilai</span>
+    </div>
+    <div id="ik-courses" class="space-y-2"></div>
+    <div class="mt-3 flex flex-wrap items-center gap-3">
+      <button type="button" id="ik-add-course" class="tl-ghost"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah mata kuliah</button>
+      <button type="button" id="ik-clear-courses" class="tl-ghost">Kosongkan</button>
+    </div>
+    <div id="ik-ips-out" class="mt-4 grid gap-3 sm:grid-cols-3" aria-live="polite"></div>
+    <button type="button" id="ik-add-from-ips" class="tl-btn mt-4"><i class="fa-solid fa-arrow-down" aria-hidden="true"></i> Tambahkan ke riwayat semester</button>
+  </section>
+
+  <!-- IPK -->
+  <section aria-labelledby="ik-h-ipk">
+    <h2 id="ik-h-ipk" class="mb-3 text-lg font-bold text-slate-800">3. Riwayat semester dan IPK</h2>
+    <div class="hidden grid-cols-12 gap-3 px-1 text-xs font-semibold text-slate-500 sm:grid">
+      <span class="col-span-5">Semester</span><span class="col-span-3">SKS</span><span class="col-span-3">IPS</span>
+    </div>
+    <div id="ik-sems" class="space-y-2"></div>
+    <div class="mt-3"><button type="button" id="ik-add-sem" class="tl-ghost"><i class="fa-solid fa-plus" aria-hidden="true"></i> Tambah semester</button></div>
+    <div id="ik-ipk-out" class="mt-4 grid gap-3 sm:grid-cols-3" aria-live="polite"></div>
+  </section>
+
+  <!-- Simulasi -->
+  <section aria-labelledby="ik-h-sim">
+    <h2 id="ik-h-sim" class="mb-3 text-lg font-bold text-slate-800">4. Simulasi target IPK</h2>
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div><label class="tl-label" for="ik-cur-sks">SKS yang sudah ditempuh</label><input id="ik-cur-sks" type="number" min="0" step="1" class="tl-input" /></div>
+      <div><label class="tl-label" for="ik-cur-ipk">IPK saat ini</label><input id="ik-cur-ipk" type="number" min="0" step="0.01" class="tl-input" /></div>
+      <div><label class="tl-label" for="ik-target">Target IPK</label><input id="ik-target" type="number" min="0" step="0.01" class="tl-input" placeholder="mis. 3,50" /></div>
+      <div><label class="tl-label" for="ik-next-sks">SKS semester depan</label><input id="ik-next-sks" type="number" min="1" step="1" class="tl-input" value="20" /></div>
+    </div>
+    <p class="mt-2 text-xs text-slate-500">SKS dan IPK terisi otomatis dari riwayat semester. Ubah bila perlu.</p>
+    <div id="ik-sim-out" class="mt-4" aria-live="polite"></div>
+  </section>
+</div>
+
+<script>
+  import '../scripts/tools/kalkulator-ipk.ts';
+</script>

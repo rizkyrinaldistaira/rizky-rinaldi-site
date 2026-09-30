@@ -4,6 +4,7 @@
 // Daftar seri dan tulisan terbaru dibaca otomatis dari koleksi blog,
 // sehingga footer ikut diperbarui setiap ada artikel baru tanpa disunting manual.
 import { getCollection } from 'astro:content';
+import { toolById, toolPath } from '../data/tools';
 
 const posts = (await getCollection('blog')).sort(
   (a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf() || b.id.localeCompare(a.id)
@@ -20,6 +21,7 @@ for (const p of posts) {
 const series = [...seriesCount.entries()].sort((a, b) => a[0].localeCompare(b[0], 'id'));
 const latest = posts.slice(0, 3);
 const year = new Date().getFullYear();
+const popularTools = ['gabung-pdf', 'kompres-gambar', 'jpg-ke-pdf', 'kalkulator-ilmiah', 'ukuran-sampel'].map(toolById);
 
 const waNumber = '6282160052217';
 const waText = encodeURIComponent("Assalamu'alaikum, saya ingin berkonsultasi.");
@@ -30,6 +32,7 @@ const navLinks = [
   { href: '/#akademis', label: 'Akademis' },
   { href: '/#layanan', label: 'Layanan Jasa' },
   { href: '/blog', label: 'Blog' },
+  { href: '/tools/', label: 'Tools' },
   { href: '/#kontak', label: 'Kontak' },
 ];
 ---
@@ -138,6 +141,17 @@ const navLinks = [
                   />
                   {l.label}
                 </a>
+              </li>
+            ))
+          }
+        </ul>
+
+        <p class="mt-7 text-xs font-medium uppercase tracking-wider text-slate-500">Tools populer</p>
+        <ul class="mt-3 space-y-3">
+          {
+            popularTools.map((tl) => (
+              <li>
+                <a href={toolPath(tl)} class="text-sm text-slate-400 transition hover:text-gold-400">{tl.title}</a>
               </li>
             ))
           }

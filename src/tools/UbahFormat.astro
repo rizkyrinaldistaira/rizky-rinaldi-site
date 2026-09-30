@@ -1,0 +1,48 @@
+---
+// Markup Ubah Format Gambar. Logika: src/scripts/tools/ubah-format.ts
+---
+
+<div id="fg">
+  <div class="tl-drop" id="fg-drop" tabindex="0" role="button" aria-label="Pilih gambar untuk diubah formatnya">
+    <i class="fa-solid fa-arrows-left-right text-3xl text-gold-600" aria-hidden="true"></i>
+    <p class="font-semibold text-slate-700">Tarik gambar ke sini atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">JPG, PNG, WebP, GIF, BMP. Bisa beberapa file sekaligus.</p>
+    <input type="file" class="hidden" id="fg-file" />
+  </div>
+  <div id="fg-status" class="hidden mt-4"></div>
+
+  <div id="fg-opts" class="hidden mt-5">
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <label class="tl-label" for="fg-format">Ubah ke</label>
+        <select id="fg-format" class="tl-input">
+          <option value="jpeg">JPG</option>
+          <option value="png">PNG</option>
+          <option value="webp">WebP</option>
+        </select>
+      </div>
+      <div>
+        <label class="tl-label" for="fg-q">Kualitas: <span id="fg-qv">90</span>%</label>
+        <input id="fg-q" type="range" min="40" max="100" value="90" class="w-full" />
+      </div>
+      <div>
+        <label class="tl-label" for="fg-bg">Warna latar (untuk JPG)</label>
+        <input id="fg-bg" type="color" value="#ffffff" class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white" />
+      </div>
+      <div>
+        <label class="tl-label" for="fg-max">Lebar maksimum (px, opsional)</label>
+        <input id="fg-max" type="number" min="0" placeholder="Ukuran asli" class="tl-input" />
+      </div>
+    </div>
+    <div class="mt-5 flex flex-wrap items-center gap-3">
+      <button type="button" id="fg-run" class="tl-btn"><i class="fa-solid fa-arrows-left-right" aria-hidden="true"></i> Ubah format</button>
+      <button type="button" id="fg-zip" class="tl-ghost hidden"><i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Unduh semua (ZIP)</button>
+      <button type="button" id="fg-clear" class="tl-ghost">Hapus semua</button>
+    </div>
+  </div>
+  <div id="fg-results" class="mt-5 space-y-2" aria-live="polite"></div>
+</div>
+
+<script>
+  import '../scripts/tools/ubah-format.ts';
+</script>

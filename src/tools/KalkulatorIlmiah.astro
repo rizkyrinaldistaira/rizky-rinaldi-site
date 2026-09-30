@@ -1,0 +1,93 @@
+---
+// Markup Kalkulator Ilmiah. Logika: src/scripts/tools/kalkulator-ilmiah.ts, mesin: calc.ts
+type Key = { l: string; ins?: string; act?: string; cls?: string; aria?: string };
+const rows: Key[][] = [
+  [
+    { l: 'DEG', act: 'angle', cls: 'tl-key-fn', aria: 'Ganti mode sudut derajat atau radian' },
+    { l: 'MC', act: 'mc', cls: 'tl-key-fn', aria: 'Kosongkan memori' },
+    { l: 'MR', ins: 'M', cls: 'tl-key-fn', aria: 'Panggil memori' },
+    { l: 'M+', act: 'mplus', cls: 'tl-key-fn', aria: 'Tambahkan ke memori' },
+    { l: 'M−', act: 'mminus', cls: 'tl-key-fn', aria: 'Kurangkan dari memori' },
+  ],
+  [
+    { l: '(', ins: '(', cls: 'tl-key-fn' },
+    { l: ')', ins: ')', cls: 'tl-key-fn' },
+    { l: '%', ins: '%', cls: 'tl-key-fn', aria: 'Persen' },
+    { l: '⌫', act: 'back', cls: 'tl-key-fn', aria: 'Hapus satu karakter' },
+    { l: 'AC', act: 'clear', cls: 'tl-key-fn', aria: 'Hapus semua' },
+  ],
+  [
+    { l: 'sin', ins: 'sin(', cls: 'tl-key-fn' },
+    { l: 'cos', ins: 'cos(', cls: 'tl-key-fn' },
+    { l: 'tan', ins: 'tan(', cls: 'tl-key-fn' },
+    { l: 'ln', ins: 'ln(', cls: 'tl-key-fn' },
+    { l: 'log', ins: 'log(', cls: 'tl-key-fn' },
+  ],
+  [
+    { l: 'asin', ins: 'asin(', cls: 'tl-key-fn' },
+    { l: 'acos', ins: 'acos(', cls: 'tl-key-fn' },
+    { l: 'atan', ins: 'atan(', cls: 'tl-key-fn' },
+    { l: '√', ins: '√(', cls: 'tl-key-fn', aria: 'Akar kuadrat' },
+    { l: 'xʸ', ins: '^', cls: 'tl-key-fn', aria: 'Pangkat' },
+  ],
+  [
+    { l: '7', ins: '7' }, { l: '8', ins: '8' }, { l: '9', ins: '9' },
+    { l: '÷', ins: '÷', cls: 'tl-key-op', aria: 'Bagi' },
+    { l: 'n!', ins: '!', cls: 'tl-key-fn', aria: 'Faktorial' },
+  ],
+  [
+    { l: '4', ins: '4' }, { l: '5', ins: '5' }, { l: '6', ins: '6' },
+    { l: '×', ins: '×', cls: 'tl-key-op', aria: 'Kali' },
+    { l: 'π', ins: 'π', cls: 'tl-key-fn', aria: 'Pi' },
+  ],
+  [
+    { l: '1', ins: '1' }, { l: '2', ins: '2' }, { l: '3', ins: '3' },
+    { l: '−', ins: '−', cls: 'tl-key-op', aria: 'Kurang' },
+    { l: 'e', ins: 'e', cls: 'tl-key-fn', aria: 'Bilangan Euler' },
+  ],
+  [
+    { l: '0', ins: '0' },
+    { l: ',', ins: ',', aria: 'Tanda desimal' },
+    { l: 'Ans', ins: 'Ans', cls: 'tl-key-fn', aria: 'Hasil terakhir' },
+    { l: '+', ins: '+', cls: 'tl-key-op', aria: 'Tambah' },
+    { l: '=', act: 'eq', cls: 'tl-key-eq', aria: 'Hitung' },
+  ],
+];
+---
+
+<div id="kc" class="mx-auto" style="max-width:26rem">
+  <div class="rounded-2xl bg-slate-900 p-4 text-white">
+    <div class="mb-2 flex items-center justify-between text-xs text-slate-400">
+      <span id="kc-mode" class="rounded bg-slate-800 px-2 py-0.5 font-semibold">DEG</span>
+      <span id="kc-mem" class="hidden rounded bg-amber-500/20 px-2 py-0.5 font-semibold text-amber-300">M</span>
+    </div>
+    <label for="kc-expr" class="sr-only">Ekspresi matematika</label>
+    <input id="kc-expr" type="text" class="w-full bg-transparent text-right text-2xl outline-none placeholder-slate-600" placeholder="0" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <div id="kc-result" class="mt-1 min-h-[2.75rem] break-all text-right text-4xl font-bold" aria-live="polite">0</div>
+    <div id="kc-error" class="min-h-[1.25rem] text-right text-sm text-red-300" role="alert"></div>
+  </div>
+
+  <div class="mt-3 grid grid-cols-5 gap-2" role="group" aria-label="Tombol kalkulator">
+    {
+      rows.flat().map((k) => (
+        <button type="button" class={`tl-key ${k.cls ?? ''}`} data-ins={k.ins} data-act={k.act} aria-label={k.aria} id={k.act === 'angle' ? 'kc-angle' : undefined}>
+          {k.l}
+        </button>
+      ))
+    }
+  </div>
+
+  <div class="mt-4 flex items-center justify-between">
+    <h3 class="text-sm font-bold text-slate-700">Riwayat</h3>
+    <div class="flex gap-2">
+      <button type="button" id="kc-copy" class="tl-ghost" style="padding:0.3rem 0.8rem"><i class="fa-regular fa-copy" aria-hidden="true"></i> Salin hasil</button>
+      <button type="button" id="kc-hclear" class="tl-ghost" style="padding:0.3rem 0.8rem">Hapus riwayat</button>
+    </div>
+  </div>
+  <ul id="kc-history" class="mt-2 space-y-1"></ul>
+  <p id="kc-empty" class="mt-2 text-sm text-slate-400">Belum ada perhitungan.</p>
+</div>
+
+<script>
+  import '../scripts/tools/kalkulator-ilmiah.ts';
+</script>

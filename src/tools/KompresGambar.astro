@@ -1,0 +1,42 @@
+---
+// Markup Kompres Gambar. Logika: src/scripts/tools/kompres-gambar.ts
+---
+
+<div id="kg">
+  <div class="tl-drop" id="kg-drop" tabindex="0" role="button" aria-label="Pilih gambar untuk dikompres">
+    <i class="fa-solid fa-image text-3xl text-gold-600" aria-hidden="true"></i>
+    <p class="font-semibold text-slate-700">Tarik foto ke sini atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">JPG, PNG, atau WebP. Bisa beberapa file sekaligus.</p>
+    <input type="file" class="hidden" id="kg-file" />
+  </div>
+  <div id="kg-status" class="hidden mt-4"></div>
+
+  <div id="kg-opts" class="hidden mt-5">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="sm:col-span-2">
+        <label class="tl-label" for="kg-target">Ukuran target (KB)</label>
+        <div class="flex flex-wrap items-center gap-2">
+          <input id="kg-target" type="number" min="10" max="20000" value="200" class="tl-input" style="width:8rem" />
+          {[50, 100, 200, 500, 1000].map((v) => <button type="button" class="tl-chip" data-kb={v}>{v} KB</button>)}
+        </div>
+      </div>
+      <div>
+        <label class="tl-label" for="kg-format">Format hasil</label>
+        <select id="kg-format" class="tl-input">
+          <option value="jpeg">JPG</option>
+          <option value="webp">WebP</option>
+        </select>
+      </div>
+    </div>
+    <div class="mt-5 flex flex-wrap items-center gap-3">
+      <button type="button" id="kg-run" class="tl-btn"><i class="fa-solid fa-compress" aria-hidden="true"></i> Kompres</button>
+      <button type="button" id="kg-zip" class="tl-ghost hidden"><i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Unduh semua (ZIP)</button>
+      <button type="button" id="kg-clear" class="tl-ghost">Hapus semua</button>
+    </div>
+  </div>
+  <div id="kg-results" class="mt-5 space-y-2" aria-live="polite"></div>
+</div>
+
+<script>
+  import '../scripts/tools/kompres-gambar.ts';
+</script>

@@ -1,0 +1,36 @@
+---
+// Markup Kalkulator Ukuran Sampel. Logika: src/scripts/tools/ukuran-sampel.ts, rumus: formulas.ts
+---
+
+<div id="us">
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <label class="tl-label" for="us-n">Jumlah populasi (N)</label>
+      <input id="us-n" type="number" min="1" step="1" class="tl-input" placeholder="mis. 250" />
+    </div>
+    <div>
+      <label class="tl-label" for="us-e">Batas kesalahan (e), %</label>
+      <input id="us-e" type="number" min="0.1" max="50" step="0.1" value="5" class="tl-input" />
+    </div>
+    <div>
+      <label class="tl-label" for="us-conf">Tingkat kepercayaan</label>
+      <select id="us-conf" class="tl-input">
+        <option value="90">90%</option>
+        <option value="95" selected>95%</option>
+        <option value="99">99%</option>
+      </select>
+    </div>
+    <div>
+      <label class="tl-label" for="us-p">Proporsi populasi (p), %</label>
+      <input id="us-p" type="number" min="1" max="99" step="1" value="50" class="tl-input" />
+    </div>
+  </div>
+  <p class="mt-2 text-xs text-slate-500">Bila tidak tahu proporsi populasi, biarkan 50% (nilai paling hati-hati).</p>
+
+  <div id="us-msg" class="mt-4 hidden"></div>
+  <div id="us-out" class="mt-6 grid gap-4 lg:grid-cols-3" aria-live="polite"></div>
+</div>
+
+<script>
+  import '../scripts/tools/ukuran-sampel.ts';
+</script>

@@ -1,0 +1,103 @@
+---
+// Markup Ubah Ukuran Foto dan Pas Foto. Logika: src/scripts/tools/ubah-ukuran-foto.ts
+---
+
+<div id="uf">
+  <div class="tl-drop" id="uf-drop" tabindex="0" role="button" aria-label="Pilih foto">
+    <i class="fa-solid fa-crop-simple text-3xl text-gold-600" aria-hidden="true"></i>
+    <p class="font-semibold text-slate-700">Tarik satu foto ke sini atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">JPG, PNG, atau WebP</p>
+    <input type="file" class="hidden" id="uf-file" />
+  </div>
+  <div id="uf-status" class="hidden mt-4"></div>
+
+  <div id="uf-work" class="hidden mt-6 grid gap-8 lg:grid-cols-2">
+    <div>
+      <p class="tl-label">Ukuran</p>
+      <div class="flex flex-wrap gap-2" id="uf-presets" role="group" aria-label="Ukuran pas foto">
+        <button type="button" class="tl-chip" data-w="2" data-h="3">2x3 cm</button>
+        <button type="button" class="tl-chip" data-w="3" data-h="4">3x4 cm</button>
+        <button type="button" class="tl-chip" data-w="4" data-h="6">4x6 cm</button>
+        <button type="button" class="tl-chip is-on" data-custom="1">Ukuran sendiri</button>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div>
+          <label class="tl-label" for="uf-unit">Satuan</label>
+          <select id="uf-unit" class="tl-input">
+            <option value="px">Piksel</option>
+            <option value="cm">cm</option>
+            <option value="mm">mm</option>
+          </select>
+        </div>
+        <div>
+          <label class="tl-label" for="uf-w">Lebar</label>
+          <input id="uf-w" type="number" min="1" step="any" class="tl-input" />
+        </div>
+        <div>
+          <label class="tl-label" for="uf-h">Tinggi</label>
+          <input id="uf-h" type="number" min="1" step="any" class="tl-input" />
+        </div>
+        <div>
+          <label class="tl-label" for="uf-dpi">Resolusi</label>
+          <select id="uf-dpi" class="tl-input">
+            <option value="72">72 dpi</option>
+            <option value="150">150 dpi</option>
+            <option value="300" selected>300 dpi</option>
+            <option value="600">600 dpi</option>
+          </select>
+        </div>
+      </div>
+      <label class="mt-3 flex items-center gap-2 text-sm text-slate-600">
+        <input id="uf-lock" type="checkbox" checked /> Kunci rasio gambar asli
+      </label>
+
+      <fieldset class="mt-4">
+        <legend class="tl-label">Penempatan gambar</legend>
+        <div class="flex flex-wrap gap-x-5 gap-y-1 text-sm text-slate-700">
+          <label class="flex items-center gap-2"><input type="radio" name="uf-fit" value="cover" checked /> Isi penuh (potong)</label>
+          <label class="flex items-center gap-2"><input type="radio" name="uf-fit" value="contain" /> Muat (tambah latar)</label>
+          <label class="flex items-center gap-2"><input type="radio" name="uf-fit" value="stretch" /> Regangkan</label>
+        </div>
+      </fieldset>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <div>
+          <label class="tl-label" for="uf-zoom">Zoom (mode isi penuh)</label>
+          <input id="uf-zoom" type="range" min="1" max="3" step="0.01" value="1" class="w-full" />
+        </div>
+        <div>
+          <label class="tl-label" for="uf-bg">Warna latar</label>
+          <input id="uf-bg" type="color" value="#ffffff" class="h-10 w-full cursor-pointer rounded-lg border border-slate-300 bg-white" />
+        </div>
+      </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <div>
+          <label class="tl-label" for="uf-format">Format hasil</label>
+          <select id="uf-format" class="tl-input">
+            <option value="jpeg">JPG</option>
+            <option value="png">PNG</option>
+          </select>
+        </div>
+        <div id="uf-qwrap">
+          <label class="tl-label" for="uf-q">Kualitas JPG: <span id="uf-qv">92</span>%</label>
+          <input id="uf-q" type="range" min="50" max="100" value="92" class="w-full" />
+        </div>
+      </div>
+
+      <p id="uf-info" class="mt-4 text-sm font-medium text-slate-700" aria-live="polite"></p>
+      <button type="button" id="uf-run" class="tl-btn mt-4"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Buat foto</button>
+    </div>
+
+    <div>
+      <p class="tl-label">Pratinjau <span class="font-normal text-slate-400">(geser gambar untuk mengatur posisi)</span></p>
+      <canvas id="uf-preview" class="max-w-full cursor-grab rounded-xl border border-slate-200 bg-slate-100" style="touch-action:none" aria-label="Pratinjau hasil"></canvas>
+    </div>
+  </div>
+  <div id="uf-result" class="hidden mt-6"></div>
+</div>
+
+<script>
+  import '../scripts/tools/ubah-ukuran-foto.ts';
+</script>

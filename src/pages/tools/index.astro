@@ -1,0 +1,121 @@
+---
+// src/pages/tools/index.astro
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { SITE_URL } from '../../consts';
+import { categories, tools, toolPath, type CategoryId } from '../../data/tools';
+
+const catIds = Object.keys(categories) as CategoryId[];
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Tools gratis untuk mahasiswa dan dosen',
+  url: `${SITE_URL}/tools/`,
+  description: 'Kumpulan alat bantu gratis: PDF, gambar, kalkulator ilmiah, dan perhitungan penelitian. Semua berjalan di browser tanpa unggah file.',
+  hasPart: tools.map((t) => ({ '@type': 'WebPage', name: t.title, url: `${SITE_URL}${toolPath(t)}` })),
+};
+---
+
+<BaseLayout
+  title="Tools Gratis untuk Mahasiswa dan Dosen: PDF, Gambar, Kalkulator | Rizky Rinaldi"
+  description="Tools gratis untuk mahasiswa dan dosen: gabung dan pisah PDF, kompres gambar, kalkulator ilmiah, ukuran sampel, Cronbach alpha. Diproses di browser."
+  canonical={`${SITE_URL}/tools/`}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} slot="head" />
+
+  <section class="bg-white border-b border-slate-100 pt-32 pb-12">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-1 h-7 bg-gold-500 rounded-full"></div>
+        <span class="text-gold-700 font-semibold text-xs uppercase tracking-[0.15em]">Tools gratis</span>
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-extrabold text-slate-800 leading-tight">Alat bantu untuk mahasiswa dan dosen</h1>
+      <p class="mt-4 text-slate-500 text-lg max-w-2xl leading-relaxed">
+        Gabung dan pisah PDF, kecilkan foto, hitung ukuran sampel, dan lainnya. Semua berjalan di browser Anda.
+      </p>
+      <p class="mt-4 inline-flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5">
+        <i class="fa-solid fa-lock text-xs" aria-hidden="true"></i>
+        File tidak diunggah ke server. Diproses langsung di perangkat Anda.
+      </p>
+
+      <div class="mt-8 relative max-w-xl">
+        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
+        <label for="tool-search" class="sr-only">Cari tool</label>
+        <input id="tool-search" type="search" placeholder="Cari tool, misalnya gabung pdf" class="tl-input" style="padding-left:2.6rem;padding-top:0.8rem;padding-bottom:0.8rem;border-radius:999px;" />
+      </div>
+      <div id="tool-chips" class="mt-4 flex flex-wrap gap-2" role="group" aria-label="Kategori tool">
+        <button type="button" class="tl-chip is-on" data-cat="all">Semua</button>
+        {catIds.map((c) => <button type="button" class="tl-chip" data-cat={c}>{categories[c].label}</button>)}
+      </div>
+    </div>
+  </section>
+
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12">
+    <div id="tool-groups" class="space-y-12">
+      {
+        catIds.map((c) => (
+          <section data-group={c} aria-labelledby={`g-${c}`}>
+            <div class="flex items-center gap-3 mb-5">
+              <span class="w-9 h-9 rounded-xl bg-amber-50 text-gold-600 flex items-center justify-center">
+                <i class={`fa-solid ${categories[c].icon} text-sm`} aria-hidden="true" />
+              </span>
+              <div>
+                <h2 id={`g-${c}`} class="text-lg font-bold text-slate-800">{categories[c].label}</h2>
+                <p class="text-xs text-slate-400">{categories[c].desc}</p>
+              </div>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {tools
+                .filter((t) => t.category === c)
+                .map((t) => (
+                  <a
+                    href={toolPath(t)}
+                    data-tool
+                    data-cat={c}
+                    data-text={`${t.title} ${t.short} ${categories[c].label}`.toLowerCase()}
+                    class="group bg-white border border-slate-200 rounded-2xl p-5 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-50 transition-all"
+                  >
+                    <div class="flex items-center gap-3 mb-2">
+                      <span class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 text-gold-600 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+                        <i class={`fa-solid ${t.icon}`} aria-hidden="true" />
+                      </span>
+                      <h3 class="font-bold text-slate-800 group-hover:text-gold-700 transition-colors">{t.title}</h3>
+                    </div>
+                    <p class="text-sm text-slate-500 leading-relaxed">{t.short}</p>
+                  </a>
+                ))}
+            </div>
+          </section>
+        ))
+      }
+    </div>
+    <p id="tool-empty" class="hidden text-center text-slate-500 py-16">Belum ada tool yang cocok. Coba kata kunci lain.</p>
+  </div>
+</BaseLayout>
+
+<script>
+  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('#tool-chips .tl-chip'));
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-tool]'));
+  const groups = Array.from(document.querySelectorAll<HTMLElement>('[data-group]'));
+  const input = document.getElementById('tool-search') as HTMLInputElement;
+  const empty = document.getElementById('tool-empty')!;
+  let cat = 'all';
+  function apply() {
+    const q = input.value.trim().toLowerCase();
+    let total = 0;
+    cards.forEach((c) => {
+      const show = (cat === 'all' || c.dataset.cat === cat) && (!q || (c.dataset.text ?? '').includes(q));
+      c.classList.toggle('hidden', !show);
+      if (show) total++;
+    });
+    groups.forEach((g) => g.classList.toggle('hidden', !g.querySelector('[data-tool]:not(.hidden)')));
+    empty.classList.toggle('hidden', total > 0);
+  }
+  chips.forEach((b) =>
+    b.addEventListener('click', () => {
+      cat = b.dataset.cat!;
+      chips.forEach((x) => x.classList.toggle('is-on', x === b));
+      apply();
+    }),
+  );
+  input.addEventListener('input', apply);
+</script>

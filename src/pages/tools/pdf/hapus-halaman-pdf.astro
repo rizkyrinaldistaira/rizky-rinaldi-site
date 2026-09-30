@@ -1,0 +1,7 @@
+---
+import ToolPage from '../../../layouts/ToolPage.astro';
+import Tool from '../../../tools/PageManager.astro';
+import { toolById } from '../../../data/tools';
+---
+
+<ToolPage tool={toolById('hapus-halaman-pdf')}><Tool mode="hapus" /></ToolPage>

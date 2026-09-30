@@ -1,0 +1,60 @@
+---
+// Markup JPG ke PDF. Logika: src/scripts/tools/jpg-ke-pdf.ts
+---
+
+<div id="jp">
+  <div class="tl-drop" id="jp-drop" tabindex="0" role="button" aria-label="Pilih gambar untuk diubah ke PDF">
+    <i class="fa-solid fa-file-image text-3xl text-gold-600" aria-hidden="true"></i>
+    <p class="font-semibold text-slate-700">Tarik gambar ke sini atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">JPG, PNG, WebP, dan format gambar umum lainnya</p>
+    <input type="file" class="hidden" id="jp-file" />
+  </div>
+  <div id="jp-status" class="hidden mt-4"></div>
+  <div id="jp-list" class="mt-5 space-y-2" aria-live="polite"></div>
+
+  <div id="jp-opts" class="hidden mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <label class="tl-label" for="jp-size">Ukuran halaman</label>
+      <select id="jp-size" class="tl-input">
+        <option value="a4">A4</option>
+        <option value="letter">Letter</option>
+        <option value="fit">Sesuai gambar</option>
+      </select>
+    </div>
+    <div>
+      <label class="tl-label" for="jp-orient">Orientasi</label>
+      <select id="jp-orient" class="tl-input">
+        <option value="auto">Otomatis</option>
+        <option value="portrait">Potret</option>
+        <option value="landscape">Lanskap</option>
+      </select>
+    </div>
+    <div>
+      <label class="tl-label" for="jp-margin">Margin</label>
+      <select id="jp-margin" class="tl-input">
+        <option value="0">Tanpa margin</option>
+        <option value="10" selected>10 mm</option>
+        <option value="20">20 mm</option>
+      </select>
+    </div>
+    <div>
+      <label class="tl-label" for="jp-quality">Kualitas gambar</label>
+      <select id="jp-quality" class="tl-input">
+        <option value="0.92">Tinggi</option>
+        <option value="0.8" selected>Sedang</option>
+        <option value="0.6">Rendah (file terkecil)</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="jp-actions" class="hidden mt-5 flex flex-wrap items-center gap-3">
+    <button type="button" id="jp-make" class="tl-btn"><i class="fa-solid fa-file-pdf" aria-hidden="true"></i> Buat PDF</button>
+    <button type="button" id="jp-clear" class="tl-ghost">Hapus semua</button>
+    <span id="jp-summary" class="text-sm text-slate-500"></span>
+  </div>
+  <div id="jp-result" class="hidden mt-5"></div>
+</div>
+
+<script>
+  import '../scripts/tools/jpg-ke-pdf.ts';
+</script>
