@@ -491,3 +491,85 @@ details.tl-faq > summary::-webkit-details-marker {
 details.tl-faq[open] > summary i {
   transform: rotate(180deg);
 }
+
+/* Scan Dokumen */
+.tl-effect {
+  display: block;
+  text-align: left;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.tl-effect strong {
+  display: block;
+  font-size: 0.85rem;
+  color: #1e293b;
+}
+.tl-effect span {
+  display: block;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: #64748b;
+}
+.tl-effect:hover {
+  border-color: #fcd34d;
+}
+.tl-effect[aria-checked='true'] {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+.tl-effect:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+.tl-progress {
+  height: 0.75rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+.tl-progress > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  transition: width 0.2s ease;
+}
+.tl-dialog {
+  border: 0;
+  border-radius: 1rem;
+  padding: 0.9rem;
+  width: min(96vw, 56rem);
+  max-height: 96vh;
+  background: #fff;
+  overflow: auto;
+}
+.tl-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.75);
+}
+.tl-dialog img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 80vh;
+  height: auto;
+  background: #f1f5f9;
+}
+
+/* Kelas "hidden" Tailwind harus tetap menang atas display bawaan komponen tools. */
+.tl-btn.hidden,
+.tl-ghost.hidden,
+.tl-icon.hidden,
+.tl-chip.hidden,
+.tl-row.hidden,
+.tl-drop.hidden,
+.tl-effect.hidden,
+.tl-page.hidden,
+.tl-status.hidden {
+  display: none;
+}

@@ -29,6 +29,14 @@ Semua tool berjalan di browser pengunjung. Tidak ada file yang diunggah ke serve
   karena sebagian hosting statis menyajikan `.mjs` dengan tipe MIME yang salah.
 - Untuk memperbarui, unduh paket dengan `npm pack`, salin berkas yang sama, lalu uji semua tool PDF.
 
+## Scan Dokumen
+
+`src/scripts/tools/scan-effects.ts` adalah mesin efek murni (tanpa DOM) sehingga bisa diuji di Node.
+Efek Otomatis, Dokumen, dan Hitam putih memakai koreksi latar (flat-field): kecerahan kertas diperkirakan per blok,
+dihaluskan, lalu tiap piksel dibagi perkiraan itu. Cara ini meratakan cahaya dan bayangan, tidak seperti ambang tunggal.
+`scan-dokumen.ts` mengurus antarmuka: yang disimpan per halaman hanya JPEG hasil dan thumbnail, rotasi disimpan sebagai
+metadata (PDF memakai atribut /Rotate, tanpa encode ulang), dan setiap tombol kartu mencari halaman lewat objeknya, bukan indeks.
+
 ## Catatan pengujian
 
 Diuji otomatis pada Chromium (Chrome, Edge, Chrome Android): fungsi tiap tool, hasil unduhan diperiksa isinya,
