@@ -31,14 +31,42 @@ Semua tool berjalan di browser pengunjung. Tidak ada file yang diunggah ke serve
 
 ## Scan Dokumen
 
-`src/scripts/tools/scan-effects.ts` adalah mesin efek murni (tanpa DOM) sehingga bisa diuji di Node.
-Efek Otomatis, Dokumen, dan Hitam putih memakai koreksi latar (flat-field): kecerahan kertas diperkirakan per blok,
-dihaluskan, lalu tiap piksel dibagi perkiraan itu. Cara ini meratakan cahaya dan bayangan, tidak seperti ambang tunggal.
-`scan-dokumen.ts` mengurus antarmuka: yang disimpan per halaman hanya JPEG hasil dan thumbnail, rotasi disimpan sebagai
-metadata (PDF memakai atribut /Rotate, tanpa encode ulang), dan setiap tombol kartu mencari halaman lewat objeknya, bukan indeks.
+Alurnya: **deteksi tepi, penyempurnaan sudut, pelurusan perspektif, filter, penajaman**. Semua mesin berupa TypeScript murni tanpa DOM
+di `src/scripts/tools/` sehingga dapat diuji di Node, dan berjalan di Web Worker (`scan-worker.ts`) agar animasi tetap mulus.
+Jika Worker tidak tersedia, `scan-dokumen.ts` memakai cadangan di utas utama lewat `import('./scan-core.ts')`.
+
+- `scan-detect.ts`: mencari empat sudut kertas pada gambar sekitar 640 px. Tiga kandidat masker (kecerahan, jarak warna dari tepi, tepi
+  Canny), komponen terbesar, cangkang cembung, lalu segi empat penutup minimum. Hasil hanya diterima bila skor >= 0,6 dan dukungan tepi
+  >= 0,8; selain itu mengembalikan `null` (lebih aman mengaku tidak yakin daripada memotong salah).
+- `scan-refine.ts`: menelusuri tiap sisi pada foto resolusi penuh, mencocokkan garis dengan pembuangan pencilan, menghitung ulang sudut.
+  Galat sudut turun sekitar 6 kali lipat pada uji sintetis. Hanya dipakai untuk sudut hasil deteksi otomatis, bukan sudut yang diatur manual.
+- `scan-warp.ts`: estimasi rasio kertas dari geometri perspektif (Zhang-He) dengan pagar panjang fokus, penguncian ke A4/Letter/F4
+  bila selisih < 3,5%, ukuran keluaran berbasis luas (tidak memperbesar melebihi detail asli), dan warp bilinear. Mode rasio manual tersedia.
+- `scan-effects.ts`: normalisasi latar (flat-field), kurva tingkat, penajaman unsharp, dan enam filter.
+- `scan-core.ts`: `detect()` dan `renderScan()` yang dipakai worker dan cadangannya.
+
+Batas yang diketahui: kertas putih di atas alas putih sering tidak terdeteksi (editor sudut manual tersedia); estimasi rasio mengandalkan
+asumsi kamera biasa; tidak ada deteksi arah teks maupun OCR; HEIC tidak didukung. Validasi deteksi baru dilakukan pada adegan sintetis
+berkunci jawaban (`/tmp/make_scenes.py` bukan bagian repo), belum pada koleksi foto nyata. PDF terenkripsi atau terbatas ditolak.
+
+Uji: kartu memakai keadaan `is-queued/scanning/detected/ready/updating/error`; animasi dilewati bila `prefers-reduced-motion`.
 
 ## Catatan pengujian
 
 Diuji otomatis pada Chromium (Chrome, Edge, Chrome Android): fungsi tiap tool, hasil unduhan diperiksa isinya,
 tampilan pada lebar 320, 390, 768, dan 1280 px, aksesibilitas dasar, dan beban PDF 300 halaman.
 Safari (iPhone) dan Firefox belum diuji otomatis. Uji manual pada perangkat nyata sebelum diumumkan.
+
+## PDF ke Gambar
+
+`pdf-ke-gambar.ts`: satu PDF dibuka dengan pdf.js (PDF terenkripsi atau terbatas ditolak), halaman dipilih dengan `parseRanges`, tiap halaman
+dirender pada skala dpi/72 dan dibatasi `MAX_PIXELS` (16 juta piksel) lalu ditandai kepada pengguna. JPG diberi metadata dpi (`setJpegDpi`).
+Hanya blob dan thumbnail kecil yang disimpan, sehingga aman untuk PDF panjang. Proses dapat dihentikan.
+
+## Buat ZIP (kategori Berkas & ZIP)
+
+`buat-zip.ts`: daftar berkas bebas jenis (`bindDropzone` dengan `accept: []` berarti semua jenis), urutan lewat seret atau tombol,
+aturan nama massal (nomor urut, awalan, akhiran, cari-ganti, spasi, huruf kecil, folder). Fungsi `plan()` menghitung nama baru untuk
+pratinjau dan pembuatan ZIP dari satu sumber yang sama. Nama dirapikan agar aman lintas sistem, dan kembar dibedakan tanpa peduli huruf
+besar/kecil. ZIP ditulis `createZip` (tanpa kompresi, tanpa Zip64), seluruh isi dimuat di memori, sehingga total dibatasi 1,5 GB.
+Belum ada ekstraktor ZIP.

@@ -1,0 +1,85 @@
+---
+// Markup Buat ZIP. Logika: src/scripts/tools/buat-zip.ts
+---
+
+<div id="bz">
+  <div class="tl-drop" id="bz-drop" tabindex="0" role="button" aria-label="Pilih berkas untuk dimasukkan ke ZIP">
+    <i class="fa-solid fa-file-zipper text-3xl text-gold-600" aria-hidden="true"></i>
+    <p class="font-semibold text-slate-700">Tarik berkas ke sini atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">Jenis dan jumlah berkas bebas. Bisa ditambah beberapa kali.</p>
+    <input type="file" class="hidden" id="bz-file" />
+  </div>
+  <div id="bz-status" class="hidden mt-4"></div>
+
+  <div id="bz-opts" class="hidden mt-5">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 class="text-lg font-bold text-slate-800">Berkas</h2>
+      <p id="bz-summary" class="text-sm text-slate-500"></p>
+    </div>
+    <p class="mt-1 text-xs text-slate-500">Seret baris atau pakai tombol panah untuk mengatur urutan. Nama di dalam ZIP tampil di sebelah kanan tanda panah.</p>
+    <div id="bz-list" class="mt-3 space-y-2"></div>
+
+    <h2 class="mt-6 text-lg font-bold text-slate-800">Aturan nama</h2>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="flex items-end pb-2">
+        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700"><input id="bz-num" type="checkbox" class="h-4 w-4" /> Nomor urut di depan (01_, 02_, ...)</label>
+      </div>
+      <div>
+        <label class="tl-label" for="bz-start">Mulai dari nomor</label>
+        <input id="bz-start" type="number" min="0" max="9999" value="1" class="tl-input" />
+      </div>
+      <div>
+        <label class="tl-label" for="bz-prefix">Awalan</label>
+        <input id="bz-prefix" type="text" class="tl-input" placeholder="Contoh: 24010001_" autocomplete="off" />
+      </div>
+      <div>
+        <label class="tl-label" for="bz-suffix">Akhiran (sebelum titik ekstensi)</label>
+        <input id="bz-suffix" type="text" class="tl-input" placeholder="Contoh: _final" autocomplete="off" />
+      </div>
+      <div>
+        <label class="tl-label" for="bz-find">Cari kata pada nama</label>
+        <input id="bz-find" type="text" class="tl-input" autocomplete="off" />
+      </div>
+      <div>
+        <label class="tl-label" for="bz-repl">Ganti dengan</label>
+        <input id="bz-repl" type="text" class="tl-input" autocomplete="off" />
+      </div>
+      <div>
+        <label class="tl-label" for="bz-space">Spasi pada nama</label>
+        <select id="bz-space" class="tl-input">
+          <option value="">Biarkan</option>
+          <option value="_">Ganti dengan _</option>
+          <option value="-">Ganti dengan -</option>
+        </select>
+      </div>
+      <div>
+        <label class="tl-label" for="bz-case">Huruf</label>
+        <select id="bz-case" class="tl-input">
+          <option value="">Biarkan</option>
+          <option value="lower">Semua huruf kecil</option>
+        </select>
+      </div>
+    </div>
+
+    <h2 class="mt-6 text-lg font-bold text-slate-800">Hasil ZIP</h2>
+    <div class="mt-3 grid gap-4 sm:grid-cols-2">
+      <div>
+        <label class="tl-label" for="bz-zipname">Nama ZIP</label>
+        <input id="bz-zipname" type="text" class="tl-input" value="berkas" autocomplete="off" />
+      </div>
+      <div>
+        <label class="tl-label" for="bz-folder">Folder di dalam ZIP (opsional)</label>
+        <input id="bz-folder" type="text" class="tl-input" placeholder="Kosongkan bila tidak perlu" autocomplete="off" />
+      </div>
+    </div>
+    <div class="mt-5 flex flex-wrap items-center gap-3">
+      <button type="button" id="bz-run" class="tl-btn"><i class="fa-solid fa-file-zipper" aria-hidden="true"></i> Buat ZIP</button>
+      <button type="button" id="bz-clear" class="tl-ghost">Hapus semua</button>
+    </div>
+    <p id="bz-progress" class="mt-3 text-sm text-slate-600" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+  import '../scripts/tools/buat-zip.ts';
+</script>

@@ -1,70 +1,50 @@
 ---
-// Markup Scan Dokumen. Logika: src/scripts/tools/scan-dokumen.ts, mesin efek: scan-effects.ts
-import { EFFECTS } from '../scripts/tools/scan-effects.ts';
+// Markup Scan Dokumen. Logika: src/scripts/tools/scan-dokumen.ts. Mesin: scan-detect, scan-warp, scan-effects, scan-core.
+import { FILTERS } from '../scripts/tools/scan-effects.ts';
 ---
 
 <div id="sc">
-  <div class="tl-drop" id="sc-drop" tabindex="0" role="button" aria-label="Pilih PDF atau foto dokumen">
+  <div class="tl-drop" id="sc-drop" tabindex="0" role="button" aria-label="Pilih foto dokumen atau PDF">
     <i class="fa-solid fa-camera text-3xl text-gold-600" aria-hidden="true"></i>
-    <p class="font-semibold text-slate-700">Tarik PDF atau foto dokumen ke sini, atau klik untuk memilih</p>
-    <p class="text-sm text-slate-500">PDF, JPG, PNG, atau WebP. Bisa beberapa file sekaligus.</p>
+    <p class="font-semibold text-slate-700">Tarik foto dokumen atau PDF ke sini, atau klik untuk memilih</p>
+    <p class="text-sm text-slate-500">Foto dipotong dan diluruskan otomatis. Bisa banyak file sekaligus.</p>
     <input type="file" class="hidden" id="sc-file" />
   </div>
   <div id="sc-status" class="hidden"></div>
-  <div id="sc-files" class="mt-4 space-y-2"></div>
+  <div id="sc-live" class="sr-only" aria-live="polite"></div>
 
   <div id="sc-opts" class="hidden mt-6">
-    <p id="sc-effect-label" class="tl-label">Efek scan</p>
-    <div id="sc-effects" role="radiogroup" aria-labelledby="sc-effect-label" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+    <p id="sc-filter-label" class="tl-label">Filter</p>
+    <div id="sc-filters" role="radiogroup" aria-labelledby="sc-filter-label" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
       {
-        EFFECTS.map((e) => (
-          <button type="button" role="radio" aria-checked={e.id === 'otomatis' ? 'true' : 'false'} tabindex={e.id === 'otomatis' ? 0 : -1} class="tl-effect" data-effect={e.id}>
-            <strong>{e.name}</strong>
-            <span>{e.desc}</span>
+        FILTERS.map((f) => (
+          <button type="button" role="radio" aria-checked={f.id === 'ajaib' ? 'true' : 'false'} tabindex={f.id === 'ajaib' ? 0 : -1} class="tl-effect" data-filter={f.id}>
+            <strong>{f.name}</strong>
+            <span>{f.desc}</span>
           </button>
         ))
       }
     </div>
-
-    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div>
-        <label class="tl-label" for="sc-strength">Kekuatan efek: <span id="sc-strength-v">100</span>%</label>
-        <input id="sc-strength" type="range" min="0" max="100" step="5" value="100" class="w-full" />
-      </div>
-      <div>
-        <label class="tl-label" for="sc-dpi">Resolusi</label>
-        <select id="sc-dpi" class="tl-input">
-          <option value="150" selected>150 dpi (ringan)</option>
-          <option value="200">200 dpi (standar)</option>
-          <option value="300">300 dpi (tajam, file besar)</option>
+        <label class="tl-label" for="sc-quality">Ketajaman hasil</label>
+        <select id="sc-quality" class="tl-input">
+          <option value="standar">Standar (file ringan)</option>
+          <option value="tajam" selected>Tajam (disarankan)</option>
+          <option value="maksimal">Maksimal (file besar)</option>
         </select>
       </div>
       <div>
-        <label class="tl-label" for="sc-q">Kualitas JPEG</label>
-        <select id="sc-q" class="tl-input">
-          <option value="0.6">Kecil (file paling ringan)</option>
-          <option value="0.75" selected>Sedang</option>
-          <option value="0.9">Tinggi</option>
+        <label class="tl-label" for="sc-aspect">Ukuran halaman</label>
+        <select id="sc-aspect" class="tl-input">
+          <option value="auto" selected>Otomatis dari foto</option>
+          <option value="a4">Paksa A4</option>
+          <option value="letter">Paksa Letter</option>
+          <option value="f4">Paksa F4 (folio)</option>
         </select>
       </div>
-      <div class="flex items-end">
-        <label class="flex items-start gap-2 pb-2 text-sm text-slate-700">
-          <input id="sc-look" type="checkbox" class="mt-1" />
-          <span>Tampilan scanner <span class="block text-xs text-slate-500">Bayangan tepi dan noise halus. File jadi lebih besar.</span></span>
-        </label>
-      </div>
+      <div class="flex items-end"><button type="button" id="sc-clear" class="tl-ghost">Hapus semua</button></div>
     </div>
-
-    <div class="mt-5 flex flex-wrap items-center gap-3">
-      <button type="button" id="sc-run" class="tl-btn"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Mulai scan</button>
-      <button type="button" id="sc-cancel" class="tl-ghost hidden">Batalkan</button>
-      <button type="button" id="sc-clear" class="tl-ghost">Hapus semua</button>
-    </div>
-  </div>
-
-  <div id="sc-progress" class="hidden mt-5">
-    <div id="sc-bar" class="tl-progress" role="progressbar" aria-label="Kemajuan scan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="sc-bar-fill"></span></div>
-    <p id="sc-ptext" class="mt-2 text-sm text-slate-600" aria-live="polite"></p>
   </div>
 
   <div id="sc-results" class="hidden mt-8">
@@ -72,16 +52,22 @@ import { EFFECTS } from '../scripts/tools/scan-effects.ts';
       <h2 class="text-lg font-bold text-slate-800">Hasil scan</h2>
       <p id="sc-summary" class="text-sm text-slate-500"></p>
     </div>
-    <p id="sc-stale" class="tl-status tl-status-info mt-3 hidden">Daftar file atau pengaturan sudah berubah. Klik "Mulai scan" untuk memperbarui hasil.</p>
-    <p class="mt-2 text-xs text-slate-500">Seret kartu untuk mengurutkan. Klik gambar untuk memperbesar.</p>
+    <p class="mt-1 text-xs text-slate-500">Klik gambar untuk memperbesar. Tepi meleset? Klik ikon potong untuk menggesernya. Seret kartu untuk mengurutkan.</p>
     <div id="sc-grid" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"></div>
 
     <div class="mt-6 flex flex-wrap items-end gap-3">
       <div>
-        <label class="tl-label" for="sc-margin">Margin PDF</label>
-        <select id="sc-margin" class="tl-input" style="width:9rem">
-          <option value="0">Tanpa margin</option>
-          <option value="5" selected>5 mm</option>
+        <label class="tl-label" for="sc-pdfsize">Halaman PDF</label>
+        <select id="sc-pdfsize" class="tl-input" style="width:10rem">
+          <option value="a4" selected>A4</option>
+          <option value="fit">Sesuai gambar</option>
+        </select>
+      </div>
+      <div>
+        <label class="tl-label" for="sc-margin">Margin</label>
+        <select id="sc-margin" class="tl-input" style="width:8.5rem">
+          <option value="0" selected>Tanpa margin</option>
+          <option value="5">5 mm</option>
           <option value="10">10 mm</option>
         </select>
       </div>
@@ -90,6 +76,27 @@ import { EFFECTS } from '../scripts/tools/scan-effects.ts';
     </div>
     <div id="sc-dlstatus" class="hidden"></div>
   </div>
+
+  <dialog id="sc-editor" class="tl-dialog tl-editor" aria-label="Atur tepi dokumen">
+    <div class="mb-2 flex items-center justify-between gap-3">
+      <p class="text-sm font-semibold text-slate-700">Atur tepi dokumen</p>
+      <button type="button" id="sc-editor-close" class="tl-icon" aria-label="Tutup editor"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <p class="mb-2 text-xs text-slate-500">Geser keempat titik ke sudut dokumen. Dengan keyboard: fokus pada titik, lalu tekan tombol panah (Shift untuk lompat lebih jauh).</p>
+    <div id="sc-stage" class="tl-stage">
+      <canvas id="sc-stage-canvas"></canvas>
+      <svg id="sc-overlay" aria-hidden="false"><polygon id="sc-poly"></polygon></svg>
+      <canvas id="sc-loupe" class="tl-loupe" width="220" height="220" hidden></canvas>
+    </div>
+    <p id="sc-editor-msg" class="mt-2 min-h-[1.25rem] text-sm text-slate-600" aria-live="polite"></p>
+    <div class="mt-2 flex flex-wrap items-center gap-2">
+      <button type="button" id="sc-ed-auto" class="tl-ghost"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Deteksi otomatis</button>
+      <button type="button" id="sc-ed-full" class="tl-ghost">Seluruh gambar</button>
+      <span class="flex-1"></span>
+      <button type="button" id="sc-ed-cancel" class="tl-ghost">Batal</button>
+      <button type="button" id="sc-ed-apply" class="tl-btn">Terapkan</button>
+    </div>
+  </dialog>
 
   <dialog id="sc-dialog" class="tl-dialog" aria-label="Pratinjau halaman">
     <div class="mb-2 flex items-center justify-between gap-3">

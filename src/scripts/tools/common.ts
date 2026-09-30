@@ -78,7 +78,7 @@ export function nextFrame(): Promise<void> {
 export function bindDropzone(
   root: HTMLElement,
   opts: {
-    accept: string[]; // ekstensi tanpa titik, huruf kecil
+    accept: string[]; // ekstensi tanpa titik, huruf kecil; array kosong = semua jenis berkas
     multiple: boolean;
     onFiles: (files: File[]) => void;
     onReject?: (names: string[]) => void;
@@ -86,11 +86,12 @@ export function bindDropzone(
 ) {
   const input = root.querySelector('input[type=file]') as HTMLInputElement;
   input.multiple = opts.multiple;
-  input.accept = opts.accept.map((e) => '.' + e).join(',');
+  if (opts.accept.length) input.accept = opts.accept.map((e) => '.' + e).join(',');
+  const allowed = (name: string) => !opts.accept.length || opts.accept.includes(extOf(name));
   const handle = (list: FileList | File[]) => {
     const all = Array.from(list);
-    const good = all.filter((f) => opts.accept.includes(extOf(f.name)));
-    const bad = all.filter((f) => !opts.accept.includes(extOf(f.name))).map((f) => f.name);
+    const good = all.filter((f) => allowed(f.name));
+    const bad = all.filter((f) => !allowed(f.name)).map((f) => f.name);
     if (bad.length && opts.onReject) opts.onReject(bad);
     if (good.length) opts.onFiles(opts.multiple ? good : [good[0]]);
   };

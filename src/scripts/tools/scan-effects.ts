@@ -1,26 +1,17 @@
-// Mesin efek Scan Dokumen. Fungsi murni tanpa DOM: bisa diuji langsung di Node.
+// Filter Scan Dokumen (ala CamScanner). Fungsi murni tanpa DOM: dapat diuji di Node dan dijalankan di Web Worker.
 //
-// Inti efek "Otomatis", "Dokumen", dan "Hitam Putih" adalah koreksi latar (flat-field):
-// tingkat kecerahan kertas diperkirakan per blok, dihaluskan, lalu setiap piksel dibagi
-// dengan perkiraan itu. Hasilnya kertas menjadi putih merata walau foto diambil dengan
+// Inti filter Ajaib, Terang, Dokumen, dan Hitam putih adalah koreksi latar (flat-field): kecerahan kertas
+// diperkirakan per blok, dihaluskan, lalu tiap piksel dibagi perkiraan itu. Kertas menjadi putih merata walau
 // cahaya tidak rata atau ada bayangan, sesuatu yang tidak bisa dicapai dengan ambang tunggal.
 
-export type EffectId = 'asli' | 'otomatis' | 'dokumen' | 'hitamputih' | 'kontras' | 'vintage';
+import { boxBlur } from './scan-detect.ts';
 
-export type ScanOptions = {
-  effect: EffectId;
-  /** 0 sampai 1: campuran antara gambar asli (0) dan hasil efek penuh (1). */
-  strength: number;
-  /** Tambahkan bayangan tepi dan noise halus ala scanner flatbed. */
-  scannerLook?: boolean;
-  /** Benih acak agar hasil dapat diulang (untuk pengujian). */
-  seed?: number;
-};
+export type FilterId = 'asli' | 'ajaib' | 'terang' | 'dokumen' | 'hitamputih' | 'abuabu';
 
 type Grid = { grid: Float32Array; bs: number; gw: number; gh: number };
 
 /** Kecerahan (luma) 0..255 tiap piksel. */
-function luminance(data: Uint8ClampedArray, n: number): Uint8Array {
+export function luminance(data: Uint8ClampedArray, n: number): Uint8Array {
   const lum = new Uint8Array(n);
   for (let i = 0, p = 0; i < n; i++, p += 4) lum[i] = (data[p] * 77 + data[p + 1] * 150 + data[p + 2] * 29) >> 8;
   return lum;
@@ -141,20 +132,30 @@ function autoBlackPoint(lum: Uint8Array, g: Grid, w: number, h: number): number 
   return 0;
 }
 
-function normalizedEffect(data: Uint8ClampedArray, w: number, h: number, effect: EffectId, k: number) {
-  const gray = effect === 'hitamputih';
+type Params = { lo: number | 'auto'; hi: number; gray: boolean; gamma: number; sat: number; s: number };
+
+const PRESETS: Record<Exclude<FilterId, 'asli'>, Params> = {
+  ajaib: { lo: 'auto', hi: 250, gray: false, gamma: 0.92, sat: 1.22, s: 0.5 },
+  terang: { lo: 0, hi: 235, gray: false, gamma: 0.78, sat: 1.1, s: 0.3 },
+  dokumen: { lo: 70, hi: 215, gray: false, gamma: 1, sat: 1.0, s: 0.6 },
+  hitamputih: { lo: 85, hi: 195, gray: true, gamma: 1, sat: 1, s: 1 },
+  abuabu: { lo: 25, hi: 240, gray: true, gamma: 0.95, sat: 1, s: 0.3 },
+};
+
+function flatField(data: Uint8ClampedArray, w: number, h: number, pr: Params) {
   const lum = luminance(data, w * h);
   const g = backgroundGrid(lum, w, h);
-  let lo = 70;
-  let hi = 215;
-  if (effect === 'otomatis') {
-    lo = autoBlackPoint(lum, g, w, h);
-    hi = 255;
-  } else if (effect === 'hitamputih') {
-    lo = 60;
-    hi = 220;
+  const lo = pr.lo === 'auto' ? Math.min(40, autoBlackPoint(lum, g, w, h)) : pr.lo;
+  const span = Math.max(1, pr.hi - lo);
+  // Tabel pencarian: level, kurva-S, dan gamma dihitung sekali untuk 256 nilai.
+  const lut = new Uint8Array(256);
+  for (let v = 0; v < 256; v++) {
+    let x = (v - lo) / span;
+    x = x < 0 ? 0 : x > 1 ? 1 : x;
+    x = x + pr.s * (x * x * (3 - 2 * x) - x);
+    x = Math.pow(x, pr.gamma);
+    lut[v] = Math.round(x * 255);
   }
-  const inv = 255 / Math.max(1, hi - lo);
   const ax = axisMap(w, g.bs, g.gw);
   const ay = axisMap(h, g.bs, g.gh);
   const grid = g.grid;
@@ -169,101 +170,54 @@ function normalizedEffect(data: Uint8ClampedArray, w: number, h: number, effect:
       const a1 = ax.i1[x];
       const bg = (grid[r0 + a0] * (1 - fx) + grid[r0 + a1] * fx) * (1 - fy) + (grid[r1 + a0] * (1 - fx) + grid[r1 + a1] * fx) * fy;
       const gain = 255 / bg;
-      const or = data[p];
-      const og = data[p + 1];
-      const ob = data[p + 2];
-      let r = Math.min(255, or * gain);
-      let gg = Math.min(255, og * gain);
-      let b = Math.min(255, ob * gain);
-      if (gray) {
-        const l = 0.299 * r + 0.587 * gg + 0.114 * b;
-        r = gg = b = l;
+      let r = Math.min(255, data[p] * gain);
+      let gg = Math.min(255, data[p + 1] * gain);
+      let b = Math.min(255, data[p + 2] * gain);
+      const l = 0.299 * r + 0.587 * gg + 0.114 * b;
+      if (pr.gray) r = gg = b = l;
+      else if (pr.sat !== 1) {
+        r = l + (r - l) * pr.sat;
+        gg = l + (gg - l) * pr.sat;
+        b = l + (b - l) * pr.sat;
+        r = r < 0 ? 0 : r > 255 ? 255 : r;
+        gg = gg < 0 ? 0 : gg > 255 ? 255 : gg;
+        b = b < 0 ? 0 : b > 255 ? 255 : b;
       }
-      r = (r - lo) * inv;
-      gg = (gg - lo) * inv;
-      b = (b - lo) * inv;
-      r = r < 0 ? 0 : r > 255 ? 255 : r;
-      gg = gg < 0 ? 0 : gg > 255 ? 255 : gg;
-      b = b < 0 ? 0 : b > 255 ? 255 : b;
-      data[p] = or + (r - or) * k;
-      data[p + 1] = og + (gg - og) * k;
-      data[p + 2] = ob + (b - ob) * k;
+      data[p] = lut[r | 0];
+      data[p + 1] = lut[gg | 0];
+      data[p + 2] = lut[b | 0];
     }
   }
 }
 
-function contrastEffect(data: Uint8ClampedArray, n: number, k: number) {
-  const f = 1.5;
+/** Penajaman (unsharp mask) pada kecerahan saja, agar warna tidak bergeser dan noise warna tidak menguat. */
+export function sharpen(data: Uint8ClampedArray, w: number, h: number, amount: number) {
+  if (amount <= 0) return;
+  const n = w * h;
+  const lum = luminance(data, n);
+  const r = Math.max(1, Math.round(Math.max(w, h) / 1800));
+  const blur = boxBlur(lum, w, h, r, 2);
   for (let i = 0, p = 0; i < n; i++, p += 4) {
-    for (let c = 0; c < 3; c++) {
-      const o = data[p + c];
-      let v = (o - 128) * f + 128;
-      v = v < 0 ? 0 : v > 255 ? 255 : v;
-      data[p + c] = o + (v - o) * k;
-    }
+    let d = lum[i] - blur[i];
+    if (d > -2 && d < 2) continue; // abaikan noise halus
+    d *= amount;
+    data[p] += d;
+    data[p + 1] += d;
+    data[p + 2] += d;
   }
 }
 
-function vintageEffect(data: Uint8ClampedArray, n: number, k: number) {
-  for (let i = 0, p = 0; i < n; i++, p += 4) {
-    const r = data[p];
-    const g = data[p + 1];
-    const b = data[p + 2];
-    // Matriks sepia standar lalu sedikit memudar.
-    const sr = (0.393 * r + 0.769 * g + 0.189 * b) * 0.94 + 10;
-    const sg = (0.349 * r + 0.686 * g + 0.168 * b) * 0.94 + 8;
-    const sb = (0.272 * r + 0.534 * g + 0.131 * b) * 0.94 + 4;
-    data[p] = r + (Math.min(255, sr) - r) * k;
-    data[p + 1] = g + (Math.min(255, sg) - g) * k;
-    data[p + 2] = b + (Math.min(255, sb) - b) * k;
-  }
+/** Menerapkan filter pada data RGBA (diubah di tempat), lalu menajamkan. */
+export function applyFilter(data: Uint8ClampedArray, w: number, h: number, filter: FilterId): void {
+  if (filter !== 'asli') flatField(data, w, h, PRESETS[filter]);
+  sharpen(data, w, h, filter === 'asli' ? 0.35 : filter === 'hitamputih' ? 0.55 : 0.8);
 }
 
-/** Bayangan tepi ala scanner flatbed dan noise luma halus. Deterministik menurut benih. */
-function scannerLook(data: Uint8ClampedArray, w: number, h: number, seed: number) {
-  let s = seed >>> 0 || 1;
-  const rand = () => {
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  const band = Math.max(6, Math.round(Math.min(w, h) * 0.025));
-  for (let y = 0; y < h; y++) {
-    const dy = Math.min(y, h - 1 - y);
-    let p = y * w * 4;
-    for (let x = 0; x < w; x++, p += 4) {
-      const d = Math.min(dy, x, w - 1 - x);
-      let f = 1;
-      if (d < band) {
-        const t = (band - d) / band;
-        f = 1 - 0.18 * t * t;
-      }
-      const n = (rand() - 0.5) * 5;
-      data[p] = data[p] * f + n;
-      data[p + 1] = data[p + 1] * f + n;
-      data[p + 2] = data[p + 2] * f + n;
-    }
-  }
-}
-
-/** Menerapkan efek pada data RGBA (diubah di tempat). */
-export function applyScan(data: Uint8ClampedArray, w: number, h: number, opt: ScanOptions): void {
-  const k = Math.min(1, Math.max(0, opt.strength));
-  const e = opt.effect;
-  if (e !== 'asli' && k > 0) {
-    if (e === 'otomatis' || e === 'dokumen' || e === 'hitamputih') normalizedEffect(data, w, h, e, k);
-    else if (e === 'kontras') contrastEffect(data, w * h, k);
-    else if (e === 'vintage') vintageEffect(data, w * h, k);
-  }
-  if (opt.scannerLook) scannerLook(data, w, h, opt.seed ?? 1);
-}
-
-export const EFFECTS: { id: EffectId; name: string; desc: string }[] = [
-  { id: 'otomatis', name: 'Otomatis', desc: 'Ratakan cahaya, warna tetap' },
+export const FILTERS: { id: FilterId; name: string; desc: string }[] = [
+  { id: 'ajaib', name: 'Ajaib', desc: 'Cerah, warna hidup' },
   { id: 'dokumen', name: 'Dokumen', desc: 'Kertas putih, teks tegas' },
-  { id: 'hitamputih', name: 'Hitam putih', desc: 'Abu-abu bersih untuk teks' },
-  { id: 'kontras', name: 'Kontras', desc: 'Pertajam tanpa ratakan cahaya' },
-  { id: 'vintage', name: 'Vintage', desc: 'Nuansa kuning kecokelatan' },
-  { id: 'asli', name: 'Asli', desc: 'Tanpa efek' },
+  { id: 'terang', name: 'Terang', desc: 'Lebih terang dan bersih' },
+  { id: 'hitamputih', name: 'Hitam putih', desc: 'Kontras tinggi untuk teks' },
+  { id: 'abuabu', name: 'Abu-abu', desc: 'Nuansa abu-abu lembut' },
+  { id: 'asli', name: 'Asli', desc: 'Tanpa filter' },
 ];
